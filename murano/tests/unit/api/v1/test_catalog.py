@@ -993,11 +993,3 @@ This is a fake zip archive
         req = self._get('/catalog/categories', {'test': ['test']})
         result = req.get_response(self.api)
         self.assertEqual(400, result.status_code)
-
-    @mock.patch('murano.common.utils')
-    def test_get_filters_order(self, mock_utils):
-	mock_utils.split_for_quotes.side_effect = ValueError('test')
-	query_params = ['in:cat, cat']
-	
-	filters = self.controller._get_filters(query_params)
-	print(filters)
