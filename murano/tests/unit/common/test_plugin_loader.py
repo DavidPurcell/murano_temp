@@ -10,11 +10,17 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+import inspect
 import mock
+import os.path
+import random
+import string
 from oslo_config import cfg
 
 from murano.common.plugins import extensions_loader
 from murano.tests.unit import base
+
+from murano.tests.unit.dsl.foundation import test_package_loader
 
 CONF = cfg.CONF
 
@@ -23,6 +29,16 @@ class PluginLoaderTest(base.MuranoTestCase):
 
     def setUp(self):
         super(PluginLoaderTest, self).setUp()
+
+        directory = os.path.join(os.path.dirname(
+            inspect.getfile(self.__class__)), 'meta')
+        root_meta_directory = os.path.join(
+            os.path.dirname(__file__), '../../../../../meta')
+        sys_package_loader = test_package_loader.TestPackageLoader(
+            os.path.join(root_meta_directory, 'io.murano/Classes'),
+            'io.murano')
+        self.package_loader = test_package_loader.TestPackageLoader(
+            directory, 'tests', sys_package_loader)
 
     @mock.patch('stevedore.extension.Extension')
     def test_load_extension(self, ext):
@@ -47,6 +63,22 @@ class PluginLoaderTest(base.MuranoTestCase):
         result = {'Test': list(test_obj.packages.keys())}
         self.assertEqual(result,
                          name_map)
+
+    @mock.patch('stevedore.extension.Extension')
+    def test_load_extension_twice(self, ext):
+        """Test PluginLoader.load_extension.
+
+        Check that stevedore plugin loading creates instance
+        of PackageDefinition class, new class are added to that package
+        and name mapping between class and plugin are updated.
+        """
+        ext.entry_point.name = 'Test'
+
+        name_map = {}
+        test_obj = extensions_loader.PluginLoader()
+        test_obj.load_extension(ext, name_map)
+        test_obj.load_extension(ext, name_map)
+        self.assertEqual(1, len(test_obj.packages))
 
     def test_cleanup_duplicates(self):
         """Test PluginLoader.cleanup_duplicates.
@@ -102,3 +134,39 @@ class PluginLoaderTest(base.MuranoTestCase):
         self.assertFalse(test_method(ext))
         ext.entry_point.dist.project_name = 'plugin1'
         self.assertTrue(test_method(ext))
+
+    @mock.patch('stevedore.extension.Extension')
+    def test_is_plugin_enabled_using_conf(self, ext):
+        self.override_config('enabled_plugins',
+                             override=None,
+                             group='murano')
+        ext.entry_point.dist.project_name = ''.join(random.choice(
+            string.ascii_uppercase + string.digits) for _ in range(10))
+        test_method = extensions_loader.PluginLoader.is_plugin_enabled
+        self.assertTrue(test_method(ext))
+
+    def test_load_extension_with_bad_plugin(self):
+        ext = mock.MagicMock(name='ext')
+        ext.entry_point.name = 'Test'
+        plugin = ext.plugin
+        del plugin.init_plugin
+
+        name_map = {}
+        test_obj = extensions_loader.PluginLoader()
+        test_obj.load_extension(ext, name_map)
+
+    def test_register_in_loader(self):
+        name_map = {}
+        ext1 = mock.MagicMock(name='ext1')
+        ext1.entry_point.name = 'Test1'
+        ext2 = mock.MagicMock(name='ext2')
+        ext2.entry_point.name = 'Test1'
+
+        test_obj = extensions_loader.PluginLoader()
+        test_obj.load_extension(ext1, name_map)
+        test_obj.load_extension(ext2, name_map)
+
+        self.assertEqual(len(test_obj.packages), 2)
+        test_obj.register_in_loader(self.package_loader)
+        self.assertEqual(len(test_obj.packages),
+            len(self.package_loader.packages))

@@ -117,13 +117,15 @@ function configure_murano_networking {
     # If it was set but the network is not exist then
     # first available external network will be selected.
     local ext_net=${MURANO_EXTERNAL_NETWORK:-'public'}
-    local ext_net_id=$(neutron net-external-list \
-            | grep " $ext_net " | get_field 2)
+    local ext_net_id=$(openstack --os-cloud devstack-admin
+    --os-region "$REGION_NAME" network list
+    --external | grep " $ext_net " | get_field 1)
 
     # Try to select first available external network
     if [[ -n "$ext_net_id" ]]; then
-        ext_net_id=$(neutron net-external-list -f csv -c id \
-            | tail -n +2 | tail -n 1)
+        ext_net_id=$(openstack --os-cloud devstack-admin
+        --os-region "$REGION_NAME" network list
+        --external -f csv -c ID | tail -n +2 | tail -n 1)
     fi
 
     # Configure networking options for Murano
@@ -501,10 +503,10 @@ function configure_local_settings_py() {
     fi
 
     # Install Murano as plugin for Horizon
-    ln -sf $MURANO_DASHBOARD_DIR/muranodashboard/local/enabled/_50_murano.py $HORIZON_DIR/openstack_dashboard/local/enabled/
+    ln -sf $MURANO_DASHBOARD_DIR/muranodashboard/local/enabled/*.py $HORIZON_DIR/openstack_dashboard/local/enabled/
 
     # Install setting to Horizon
-    ln -sf $MURANO_DASHBOARD_DIR/muranodashboard/local/local_settings.d/_50_murano.py $HORIZON_DIR/openstack_dashboard/local/local_settings.d/
+    ln -sf $MURANO_DASHBOARD_DIR/muranodashboard/local/local_settings.d/*.py $HORIZON_DIR/openstack_dashboard/local/local_settings.d/
 
     # Install murano RBAC policy to Horizon
     ln -sf $MURANO_DASHBOARD_DIR/muranodashboard/conf/murano_policy.json $HORIZON_DIR/openstack_dashboard/conf/
