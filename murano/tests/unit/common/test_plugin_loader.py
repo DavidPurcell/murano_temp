@@ -168,4 +168,5 @@ class PluginLoaderTest(base.MuranoTestCase):
 
         self.assertEqual(len(test_obj.packages), 2)
         test_obj.register_in_loader(self.package_loader)
-        self.assertEqual(len(test_obj.packages), len(self.package_loader.packages))
+        self.assertEqual(len(test_obj.packages),
+            len(self.package_loader.packages))

@@ -59,6 +59,7 @@ class TestPackageLoader(package_loader.MuranoPackageLoader):
             None, self._configs, meta)
         for name, payload in six.iteritems(self._classes):
             self._package.register_class(payload, name)
+        self.packages = []
         super(TestPackageLoader, self).__init__()
 
     def load_package(self, package_name, version_spec):
@@ -123,3 +124,4 @@ class TestPackageLoader(package_loader.MuranoPackageLoader):
 
     def register_package(self, package):
         super(TestPackageLoader, self).register_package(package)
+        self.packages.append(package)

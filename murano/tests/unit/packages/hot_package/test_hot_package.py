@@ -22,7 +22,7 @@ import murano.packages.load_utils as load_utils
 import murano.tests.unit.base as test_base
 
 
-MANIFEST_TEMPLATE = {
+YAML_FILE_TEMPLATE = {
     'resources': '',
     'parameters': {
         'foo': {
@@ -98,17 +98,107 @@ MANIFEST_TEMPLATE = {
     ]
 }
 
+PROPERTIES_MANIFEST = {
+    'parameters': {
+        'param1': {
+            'type': 'boolean',
+            'constraints': [
+                {
+                    'allowed_values': [True, False]
+                }
+            ]
+        },
+        'param2': {
+            'type': 'string',
+            'constraints': [
+                {
+                    'allowed_values': ['bar'],
+                },
+                {
+                    'length': {
+                        'max': 50
+                    },
+                },
+                {
+                    'length': {
+                        'min': 0
+                    },
+                },
+                {
+                    'allowed_pattern': '[A-Za-z0-9]'
+                }
+            ]
+        },
+        'param3': {
+            'type': 'number',
+            'constraints': [
+                {
+                    'allowed_values': [0, 1, 2, 3, 4]
+                },
+                {
+                    'length': {
+                        'min': 0,
+                        'max': 5
+                    },
+                },
+                {
+                    'range': {
+                        'min': 0,
+                        'max': 4
+                    }
+                }
+            ]
+        },
+        'param4': {
+            'type': 'number',
+            'constraints': [
+                {
+                    'range': {
+                        'min': -1000
+                    }
+                },
+                {
+                    'range': {
+                        'max': 1000
+                    }
+                }
+            ]
+        },
+        'param5': {
+            'type': 'json'
+        },
+        'param6': {
+            'type': 'comma_delimited_list'
+        }
+    }
+}
+
+HOT_PACKAGE_MANIFEST = {
+    'FullName': 'FullTestName',
+    'Version': '1.0.0',
+    'Type': 'Application',
+    'Name': 'TestName',
+    'Description': 'TestDescription',
+    'Author': 'TestAuthor',
+    'Supplier': 'TestSupplier',
+    'Logo:': 'TestLogo',
+    'Tags': ['Tag1', 'Tag2']
+}
+
 
 class TestHotPackage(test_base.MuranoTestCase):
 
     def setUp(cls):
         super(TestHotPackage, cls).setUp()
-        # Create test yaml files
+        # Dynamically create test directories.
         dirname, _ = os.path.split(os.path.abspath(__file__))
         cls.test_dirs = [
             os.path.join(dirname, sub) for sub in ['test1', 'test2', 'test3']
         ]
-        manifest_file_contents = [MANIFEST_TEMPLATE, {}]
+        # Dynamically create a yaml file per directory: test1 contains a
+        # working yaml file, test2 contains an empty yaml file, and test 3
+        # contains no yaml file.
+        manifest_file_contents = [YAML_FILE_TEMPLATE, {}]
         for i in range(len(cls.test_dirs)):
             if not os.path.isdir(cls.test_dirs[i]):
                 os.makedirs(cls.test_dirs[i])
@@ -117,18 +207,6 @@ class TestHotPackage(test_base.MuranoTestCase):
                 with open(yaml_file, 'w') as yaml_file:
                     yaml.dump(manifest_file_contents[i], yaml_file,
                         default_flow_style=True)
-        # Test manifest
-        cls.manifest = {
-            'FullName': 'FullTestName',
-            'Version': '1.0.0',
-            'Type': 'Application',
-            'Name': 'TestName',
-            'Description': 'TestDescription',
-            'Author': 'TestAuthor',
-            'Supplier': 'TestSupplier',
-            'Logo:': 'TestLogo',
-            'Tags': ['Tag1', 'Tag2']
-        }
 
     def tearDown(cls):
         super(TestHotPackage, cls).tearDown()
@@ -167,81 +245,8 @@ class TestHotPackage(test_base.MuranoTestCase):
         self.assertEqual([], files, msg)
 
     def test_build_properties(self):
-        hot = {}
-        hot['parameters'] = {
-            'param1': {
-                'type': 'boolean',
-                'constraints': [
-                    {
-                        'allowed_values': [True, False]
-                    }
-                ]
-            },
-            'param2': {
-                'type': 'string',
-                'constraints': [
-                    {
-                        'allowed_values': ['bar'],
-                    },
-                    {
-                        'length': {
-                            'max': 50
-                        },
-                    },
-                    {
-                        'length': {
-                            'min': 0
-                        },
-                    },
-                    {
-                        'allowed_pattern': '[A-Za-z0-9]'
-                    }
-                ]
-            },
-            'param3': {
-                'type': 'number',
-                'constraints': [
-                    {
-                        'allowed_values': [0, 1, 2, 3, 4]
-                    },
-                    {
-                        'length': {
-                            'min': 0,
-                            'max': 5
-                        },
-                    },
-                    {
-                        'range': {
-                            'min': 0,
-                            'max': 4
-                        }
-                    }
-                ]
-            },
-            'param4': {
-                'type': 'number',
-                'constraints': [
-                    {
-                        'range': {
-                            'min': -1000
-                        }
-                    },
-                    {
-                        'range': {
-                            'max': 1000
-                        }
-                    }
-                ]
-            },
-            'param5': {
-                'type': 'json'
-            },
-            'param6': {
-                'type': 'comma_delimited_list'
-            }
-        }
-
-        result = murano.packages.hot_package.HotPackage._build_properties(hot,
+        result = murano.packages.hot_package.HotPackage._build_properties(
+            PROPERTIES_MANIFEST,
             validate_hot_parameters=True)
 
         self.assertIn('templateParameters', result)
@@ -263,7 +268,8 @@ class TestHotPackage(test_base.MuranoTestCase):
         param6 = params['Contract']['param6']
         self.assertEqual(param6.expr, "$.string()")
 
-        result = murano.packages.hot_package.HotPackage._build_properties(hot,
+        result = murano.packages.hot_package.HotPackage._build_properties(
+            PROPERTIES_MANIFEST,
             validate_hot_parameters=False)
         expected_result = {
             'Contract': {},
@@ -284,7 +290,7 @@ class TestHotPackage(test_base.MuranoTestCase):
     def test_get_class_name(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[0],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         translated_class, _ = hot_package.get_class(hot_package.full_name)
         self.assertIsNotNone(translated_class)
@@ -293,7 +299,7 @@ class TestHotPackage(test_base.MuranoTestCase):
     def test_get_class_name_with_invalid_template_name(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[0],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         self.assertRaises(
             exceptions.PackageClassLoadError,
@@ -303,7 +309,7 @@ class TestHotPackage(test_base.MuranoTestCase):
     def test_get_class_name_with_invalid_template_format(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[1],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         self.assertRaises(
             exceptions.PackageFormatError,
@@ -313,7 +319,7 @@ class TestHotPackage(test_base.MuranoTestCase):
     def test_get_class_name_with_nonexistent_template(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[2],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         self.assertRaises(
             exceptions.PackageClassLoadError,
@@ -323,14 +329,14 @@ class TestHotPackage(test_base.MuranoTestCase):
     def test_translate_ui(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[0],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         hot_package._translate_ui()
 
     def test_translate_ui_with_nonexistent_template(self):
         hot_package = murano.packages.hot_package.HotPackage(
             None, None, source_directory=self.test_dirs[2],
-            manifest=self.manifest
+            manifest=HOT_PACKAGE_MANIFEST
         )
         self.assertRaises(
             exceptions.PackageClassLoadError,
