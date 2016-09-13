@@ -129,4 +129,4 @@ class FaultWrapper(wsgi.Middleware):
         try:
             return req.get_response(self.application)
         except Exception as exc:
-	    return req.get_response(Fault(self._error(exc)))
+            return req.get_response(Fault(self._error(exc)))

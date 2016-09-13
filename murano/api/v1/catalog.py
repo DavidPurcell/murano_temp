@@ -107,7 +107,7 @@ def _validate_body(body):
         f.seek(0, 2)
         size = f.tell()
         f.seek(0)
-	if size > pkg_size_limit:
+        if size > pkg_size_limit:
             raise exc.HTTPBadRequest(explanation=_(
                 'Uploading file is too large. '
                 'The limit is {0} Mb').format(mb_limit))
@@ -189,7 +189,7 @@ class Controller(object):
                     msg = _('Package name should be 80 characters maximum')
                     LOG.error(msg)
                     raise exc.HTTPBadRequest(explanation=msg)
-	package = db_api.package_update(package_id, body, req.context)
+        package = db_api.package_update(package_id, body, req.context)
         return package.to_dict()
 
     def get(self, req, package_id):
