@@ -66,12 +66,6 @@ class PluginLoaderTest(base.MuranoTestCase):
 
     @mock.patch('stevedore.extension.Extension')
     def test_load_extension_twice(self, ext):
-        """Test PluginLoader.load_extension.
-
-        Check that stevedore plugin loading creates instance
-        of PackageDefinition class, new class are added to that package
-        and name mapping between class and plugin are updated.
-        """
         ext.entry_point.name = 'Test'
 
         name_map = {}
@@ -145,15 +139,26 @@ class PluginLoaderTest(base.MuranoTestCase):
         test_method = extensions_loader.PluginLoader.is_plugin_enabled
         self.assertTrue(test_method(ext))
 
-    def test_load_extension_with_bad_plugin(self):
+    def test_load_extension_with_no_plugin(self):
         ext = mock.MagicMock(name='ext')
         ext.entry_point.name = 'Test'
         plugin = ext.plugin
         del plugin.init_plugin
 
+        returned_plugin = extensions_loader.initialize_plugin(ext.plugin)
+        self.assertEqual(returned_plugin, ext.plugin)
+
+    @mock.patch('murano.common.plugins.extensions_loader.initialize_plugin')
+    def test_load_extension_with_faulting_plugin(self, mocked_function):
+        """Test whether initializing plugin causes exception handling."""
+        mocked_function.side_effect = Exception('Test should fail.')
         name_map = {}
+        ext = mock.MagicMock(name='ext')
+        ext.entry_point.name = 'Test'
+
         test_obj = extensions_loader.PluginLoader()
-        test_obj.load_extension(ext, name_map)
+        return_val = test_obj.load_extension(ext, name_map)
+        self.assertEqual(return_val, None)
 
     def test_register_in_loader(self):
         name_map = {}
