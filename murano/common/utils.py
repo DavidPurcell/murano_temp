@@ -167,7 +167,7 @@ def is_different(obj1, obj2):
         return False
 
     def rec(o1, o2, stack1=(), stack2=()):
-	if is_in(o1, stack1) and is_in(o2, stack2):
+        if is_in(o1, stack1) and is_in(o2, stack2):
             # circular reference detected - break the loop
             return
         elif is_in(o1, stack1):
@@ -209,7 +209,7 @@ def is_different(obj1, obj2):
 
 def build_entity_map(value):
     def build_entity_map_recursive(value, id_map):
-	if isinstance(value, dict):
+        if isinstance(value, dict):
             if '?' in value and 'id' in value['?']:
                 id_map[value['?']['id']] = value
             for v in six.itervalues(value):

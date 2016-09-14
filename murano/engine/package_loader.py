@@ -97,7 +97,7 @@ class ApiPackageLoader(package_loader.MuranoPackageLoader):
 
     @property
     def client(self):
-	murano_settings = CONF.murano
+        murano_settings = CONF.murano
         last_glare_client = self._glare_client
         if CONF.engine.packages_service in ['glance', 'glare']:
             if CONF.engine.packages_service == 'glance':

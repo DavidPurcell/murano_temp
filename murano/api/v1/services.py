@@ -50,7 +50,7 @@ class Controller(object):
     def get(self, request, environment_id, path):
         LOG.debug('Services:Get <EnvId: {env_id}, '
                   'Path: {path}>'.format(env_id=environment_id, path=path))
-	session_id = None
+        session_id = None
         if hasattr(request, 'context') and request.context.session:
             session_id = request.context.session
 
@@ -67,7 +67,7 @@ class Controller(object):
     @utils.verify_env
     @normalize_path
     def post(self, request, environment_id, path, body=None):
-	if not body:
+        if not body:
             msg = _('Request body is empty: please, provide '
                     'application object model')
             LOG.error(msg)
