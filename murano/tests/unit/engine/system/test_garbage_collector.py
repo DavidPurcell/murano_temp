@@ -12,15 +12,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
-import unittest
+import weakref
 
-from murano.dsl import dsl
+import mock
+from testtools import matchers
+
 from murano.dsl import exceptions
 from murano.dsl import murano_method
 from murano.dsl import murano_object
 from murano.dsl import murano_type
-from murano.engine.system import garbage_collector
+from murano.dsl.principal_objects import garbage_collector
 from murano.tests.unit import base
 
 
@@ -28,49 +29,51 @@ class TestGarbageCollector(base.MuranoTestCase):
     def setUp(self):
         super(TestGarbageCollector, self).setUp()
 
-        self.mock_subscriber = mock.MagicMock(spec=murano_object.MuranoObject)
-        self.mock_class = mock.MagicMock(spec=murano_type.MuranoClass)
-        self.mock_method = mock.MagicMock(spec=murano_method.MuranoMethod)
-        self.mock_method.name = "mockHandler"
-        self.mock_class.methods = mock.PropertyMock(
-            return_value={"mockHandler": self.mock_method})
-        self.mock_subscriber.type = self.mock_class
-        self.mock_subscriber.object_id = "1234"
+        self.subscriber = mock.MagicMock(spec=murano_object.MuranoObject)
+        self.subscriber.real_this = self.subscriber
 
-    @mock.patch("murano.dsl.helpers.get_caller_context")
-    @mock.patch("murano.dsl.helpers.get_this")
-    def test_set_dd(self, this, caller_context):
-        this.return_value = self.mock_subscriber
-        target_0 = mock.MagicMock(spec=dsl.MuranoObjectInterface)
-        target_0.object = mock.MagicMock(murano_object.MuranoObject)
-        target_0.object.dependencies = {}
+        mock_class = mock.MagicMock(spec=murano_type.MuranoClass)
+        mock_method = mock.MagicMock(spec=murano_method.MuranoMethod)
+        mock_method.name = "mockHandler"
+        mock_class.methods = mock.PropertyMock(
+            return_value={"mockHandler": mock_method})
+
+        def find_single_method(name):
+            if name != 'mockHandler':
+                raise exceptions.NoMethodFound(name)
+
+        mock_class.find_single_method = find_single_method
+        self.subscriber.type = mock_class
+
+        self.publisher = mock.MagicMock(spec=murano_object.MuranoObject)
+        self.publisher.real_this = self.publisher
+
+    def test_set_dd(self):
+        self.publisher.destruction_dependencies = []
         garbage_collector.GarbageCollector.subscribe_destruction(
-            target_0, handler="mockHandler")
-        self.assertEqual([{"subscriber": "1234", "handler": "mockHandler"}],
-                         target_0.object.dependencies["onDestruction"])
+            self.publisher, self.subscriber, handler="mockHandler")
+        dep = self.publisher.destruction_dependencies
+        self.assertThat(dep, matchers.HasLength(1))
+        dep = dep[0]
+        self.assertEqual("mockHandler", dep["handler"])
+        self.assertEqual(self.subscriber, dep["subscriber"]())
 
-    @mock.patch("murano.dsl.helpers.get_caller_context")
-    @mock.patch("murano.dsl.helpers.get_this")
-    def test_unset_dd(self, this, caller_context):
-        this.return_value = self.mock_subscriber
-        target_1 = mock.MagicMock(spec=dsl.MuranoObjectInterface)
-        target_1.object = mock.MagicMock(murano_object.MuranoObject)
-        target_1.object.dependencies = (
-            {"onDestruction": [{"subscriber": "1234",
-                                "handler": "mockHandler"}]})
-        garbage_collector.GarbageCollector.unsubscibe_destruction(
-            target_1, handler="mockHandler")
-        self.assertEqual([], target_1.object.dependencies["onDestruction"])
+    def test_unset_dd(self):
+        self.publisher.destruction_dependencies = [{
+            "subscriber": weakref.ref(self.subscriber),
+            "handler": "mockHandler"
+        }]
+        garbage_collector.GarbageCollector.unsubscribe_destruction(
+            self.publisher, self.subscriber, handler="mockHandler")
+        self.assertEqual(
+            [], self.publisher.destruction_dependencies)
 
-    @unittest.skip("WIP")
-    @mock.patch("murano.dsl.helpers.get_caller_context")
-    @mock.patch("murano.dsl.helpers.get_this")
-    def test_set_wrong_handler(self, this, caller_context):
-        this.return_value = self.mock_subscriber
-        target_2 = mock.MagicMock(spec=dsl.MuranoObjectInterface)
-        target_2.object = mock.MagicMock(murano_object.MuranoObject)
-        target_2.object.dependencies = {}
+    def test_set_wrong_handler(self):
         self.assertRaises(
             exceptions.NoMethodFound,
             garbage_collector.GarbageCollector.subscribe_destruction,
-            target_2, handler="wrongHandler")
+            self.publisher, self.subscriber, handler="invalidHandler")
+        self.assertRaises(
+            exceptions.NoMethodFound,
+            garbage_collector.GarbageCollector.unsubscribe_destruction,
+            self.publisher, self.subscriber, handler="invalidHandler")
