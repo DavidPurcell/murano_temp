@@ -27,6 +27,7 @@ from six.moves import range
 from webob import exc
 
 from murano.api.v1 import catalog
+from murano.common import exceptions as common_exc
 from murano.db.catalog import api as db_catalog_api
 from murano.db import models
 from murano.packages import exceptions
@@ -457,6 +458,66 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         self.assertEqual(excepted_pkg3.name,
                          res_app.json['packages'][0]['name'])
 
+    @mock.patch('murano.api.v1.catalog.LOG')
+    def test_packages_filter_by_order_by(self, mock_log):
+        warnings = []
+        mock_log.warning = lambda msg: warnings.append(msg)
+
+        self._set_policy_rules(
+            {'get_package': '',
+             'manage_public_package': ''}
+        )
+        self._add_pkg("test_tenant", type='Library')
+
+        # Test whether a valid order by value works.
+        order_by = 'name'
+        request = self._get('/catalog/packages',
+                            params={'order_by': order_by})
+
+        self.expect_policy_check('get_package')
+        self.expect_policy_check('manage_public_package')
+
+        self.controller.search(request)
+        self.assertEqual(len(warnings), 0)
+
+        # Test wheter an invalid order by value fails.
+        order_by = 'TEST ORDER BY'
+        request = self._get('/catalog/packages',
+                            params={'order_by': order_by})
+
+        self.expect_policy_check('get_package')
+        self.expect_policy_check('manage_public_package')
+
+        self.controller.search(request)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('parameter is not valid', warnings[0])
+
+    @mock.patch('murano.common.utils.split_for_quotes')
+    @mock.patch('murano.api.v1.catalog.LOG')
+    def test_packages_filter_handle_value_error(self, mock_log, mock_func):
+        warnings = []
+        mock_func.side_effect = ValueError
+        mock_log.warning = lambda msg: warnings.append(msg)
+
+        self._set_policy_rules(
+            {'get_package': '',
+             'manage_public_package': ''}
+        )
+        self._add_pkg("test_tenant", type='Library')
+        tag_in = "in:tag1,tag3"
+        req = self._get('/catalog/packages',
+                        params={'tag': tag_in})
+        request = self._get('/catalog/packages',
+                            params={'tag': tag_in})
+
+        self.expect_policy_check('get_package')
+        self.expect_policy_check('manage_public_package')
+
+        self.controller.search(request)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("Search by parameter 'tag' caused an  error",
+                      warnings[0])
+
     def test_packages(self):
         self._set_policy_rules(
             {'get_package': '',
@@ -543,29 +604,29 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
     def test_modify_package_tags(self):
         self._set_policy_rules(
             {'modify_package': '',
-	     'manage_public_package': '',
-	     'publicize_package': '',}
+         'manage_public_package': '',
+         'publicize_package': '',}
         )
-	saved_package = self._add_pkg('test_tenant')
-	saved_package_pub = self._add_pkg('test_tenant', public = True)
-	self.expect_policy_check('modify_package',
-                                 {'package_id': saved_package.id})
-	
-	url = '/v1/catalog/packages/' + str(saved_package.id)
+        saved_package = self._add_pkg('test_tenant')
+        saved_package_pub = self._add_pkg('test_tenant', public = True)
+        self.expect_policy_check('modify_package',
+                                     {'package_id': saved_package.id})
 
-	data = []
-	data.append({'op': 'add', 'path': ['tags'], 'value': [ "foo", "bar" ]})
+        url = '/v1/catalog/packages/' + str(saved_package.id)
 
-	req = self._patch(url, jsonutils.dump_as_bytes(data)) 
-	result = self.controller.update(req, data, saved_package.id)
-	
-	self.assertIn('foo',result['tags'])
-	self.assertIn('bar',result['tags'])
+        data = []
+        data.append({'op': 'add', 'path': ['tags'], 'value': [ "foo", "bar" ]})
 
-	self.expect_policy_check('modify_package',
-                                 {'package_id': saved_package_pub.id})
-	self.expect_policy_check('manage_public_package', {})
-	url = '/v1/catalog/packages/' + str(saved_package_pub.id)
+        req = self._patch(url, jsonutils.dump_as_bytes(data))
+        result = self.controller.update(req, data, saved_package.id)
+
+        self.assertIn('foo',result['tags'])
+        self.assertIn('bar',result['tags'])
+
+        self.expect_policy_check('modify_package',
+                                     {'package_id': saved_package_pub.id})
+        self.expect_policy_check('manage_public_package', {})
+        url = '/v1/catalog/packages/' + str(saved_package_pub.id)
 
         data = []
         data.append({'op': 'add', 'path': ['tags'], 'value': [ "foo", "bar" ]})
@@ -578,26 +639,26 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
 
 
     def test_modify_package_name(self):
-	self._set_policy_rules(
+        self._set_policy_rules(
             {'modify_package': ''}
         )
-	saved_package = self._add_pkg('test_tenant')        
+        saved_package = self._add_pkg('test_tenant')
         self.expect_policy_check('modify_package',
                                  {'package_id': saved_package.id})
         url = '/v1/catalog/packages/' + str(saved_package.id)
-        
-	data = []
+
+        data = []
         data.append({'op': 'replace', 'path': ['name'], 'value': 'test_name'})
 
         req = self._patch(url, jsonutils.dump_as_bytes(data))
-	result = self.controller.update(req, data, saved_package.id)
+        result = self.controller.update(req, data, saved_package.id)
 
-	self.assertEquals('test_name',result['name'])
+        self.assertEquals('test_name',result['name'])
 
-	self.expect_policy_check('modify_package',
+        self.expect_policy_check('modify_package',
                                  {'package_id': saved_package.id})
 
-	data = []
+        data = []
         data.append({'op': 'replace', 'path': ['name'], 'value': 'a'*81})
 
         req = self._patch(url, jsonutils.dump_as_bytes(data))
@@ -616,25 +677,7 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         self.assertRaises(exc.HTTPBadRequest,self.controller.update,req, None, saved_package.id)
 
     def test_modify_package_is_public(self):
-	self._set_policy_rules(
-            {'modify_package': '',
-             'manage_public_package': '',
-             'publicize_package': '',}
-        )
-	saved_package = self._add_pkg('test_tenant')        
-	url = '/v1/catalog/packages/' + str(saved_package.id)
-	self.expect_policy_check('modify_package',
-                                 {'package_id': saved_package.id})
-	self.expect_policy_check('publicize_package',{})
-        data = []
-        data.append({'op': 'replace', 'path': ['is_public'], 'value': True})
-
-        req = self._patch(url, jsonutils.dump_as_bytes(data))
-        result = self.controller.update(req, data, saved_package.id)
-	self.assertTrue(result['is_public'])
-
-    def test_modify_package_bad_content_type(self):
-	self._set_policy_rules(
+        self._set_policy_rules(
             {'modify_package': '',
              'manage_public_package': '',
              'publicize_package': '',}
@@ -648,10 +691,43 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         data.append({'op': 'replace', 'path': ['is_public'], 'value': True})
 
         req = self._patch(url, jsonutils.dump_as_bytes(data))
-	print("req:" + str(req))
         result = self.controller.update(req, data, saved_package.id)
         self.assertTrue(result['is_public'])
 
+    def test_modify_package_bad_content_type(self):
+        self._set_policy_rules(
+            {'modify_package': '',
+             'manage_public_package': '',
+             'publicize_package': '',}
+        )
+        saved_package = self._add_pkg('test_tenant')
+        url = '/v1/catalog/packages/' + str(saved_package.id)
+        self.expect_policy_check('modify_package',
+                                 {'package_id': saved_package.id})
+        self.expect_policy_check('publicize_package',{})
+        data = []
+        data.append({'op': 'replace', 'path': ['is_public'], 'value': True})
+
+        req = self._patch(url, jsonutils.dump_as_bytes(data))
+        result = self.controller.update(req, data, saved_package.id)
+        self.assertTrue(result['is_public'])
+
+    def test_modify_package_with_incorrect_content_type(self):
+        self._set_policy_rules(
+            {'modify_package': ''}
+        )
+        saved_package = self._add_pkg('test_tenant')
+        self.expect_policy_check('modify_package',
+                                 {'package_id': saved_package.id})
+        url = '/v1/catalog/packages/' + str(saved_package.id)
+        data = []
+        data.append({'op': 'replace', 'path': ['name'], 'value': 'test_name'})
+
+        req = self._patch(url, jsonutils.dump_as_bytes(data))
+        req.get_content_type = mock.MagicMock(
+            side_effect=common_exc.UnsupportedContentType)
+        self.assertRaises(exc.HTTPBadRequest,
+                          self.controller.update, req, data, saved_package.id)
 
     def test_not_valid_logo(self):
         self.assertRaises(exceptions.PackageLoadError,
@@ -714,6 +790,14 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         self.assertEqual(406, result.status_code)
         self.assertTrue(b'Acceptable response can not be provided'
                         in result.body)
+
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_with_oversized_body(self, mock_policy_check):
+        mock_policy_check.return_value = True
+        packages_to_upload = {'a': 0, 'b': 1, 'c': 2}
+        mock_request = mock.MagicMock(context={})
+        self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                          mock_request, body=packages_to_upload)
 
     def test_get_ui_definition(self):
         self._set_policy_rules(
