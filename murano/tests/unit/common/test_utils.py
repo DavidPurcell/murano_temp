@@ -82,8 +82,8 @@ class UtilsTests(base.MuranoTestCase):
 	t2 = [t1]
 	self.assertTrue(utils.is_different(t1,t2))
 	
-	t1 = [{1,2,3},{1,2,3}]
-	t2 = [{1,2,3},{1,2}]
+	t1 = [{1, 2, 3},{1, 2, 3}]
+	t2 = [{1, 2, 3},{1, 2}]
 	self.assertTrue(utils.is_different(t1,t2))
 	
 	t1 = datetime.date(2016, 8, 8)

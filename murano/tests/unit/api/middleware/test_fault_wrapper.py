@@ -13,44 +13,58 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import webob
 import mock
-from murano.common import wsgi
+
 from murano.api.middleware import fault
+from murano.common import wsgi
 from murano.packages import exceptions
-from oslo_config import cfg
 from murano.tests.unit import base
-from webob import exc
+
+from oslo_config import cfg
 from oslo_serialization import jsonutils
+
+from webob import exc
 
 CONF = cfg.CONF
 
-class FaultWrapperTest(base.MuranoTestCase):
-    def test_error_500(self):
-	fault_wrapper = fault.FaultWrapper(None)	
-	result = fault_wrapper._error(exc.HTTPInternalServerError())
-        self.assertEquals(result['code'],500)
-	self.assertEquals(result['explanation'],
-		'The server has either erred or is incapable of performing the requested operation.')        
-    def test_error_value_error(self):
-	fault_wrapper = fault.FaultWrapper(None)
-        result = fault_wrapper._error(exceptions.PackageClassLoadError("test"))
-	print(result)
-        self.assertEquals(result['code'],400)
-	self.assertEquals(result['error']['message'], 'Unable to load class "test" from package')
 
-    def test_fault_wrapper(self):
-	fault_wrapper = fault.FaultWrapper(None)
-	exception_disguise = fault.HTTPExceptionDisguise(exc.HTTPInternalServerError())
-	result = fault_wrapper._error(exception_disguise)
-	self.assertEquals(result['code'],500)                            
-        self.assertEquals(result['explanation'],
-                'The server has either erred or is incapable of performing the requested operation.')
+class FaultWrapperTest(base.MuranoTestCase):
+    @mock.patch('traceback.format_exc')
+    def test_error_500(self, mock_trace):
+        mock_trace.return_value = "test trace"
+        fault_wrapper = fault.FaultWrapper(None)
+        result = fault_wrapper._error(exc.HTTPInternalServerError())
+        self.assertEqual(result['code'], 500)
+        self.assertEqual(result['explanation'],
+                         'The server has either erred or is incapable'
+                         ' of performing the requested operation.')
+
+    @mock.patch('traceback.format_exc')
+    def test_error_value_error(self, mock_trace):
+        mock_trace.return_value = "test trace"
+        fault_wrapper = fault.FaultWrapper(None)
+        exception = exceptions.PackageClassLoadError("test")
+        exception.message = "Unable to load class 'test' from package"
+        result = fault_wrapper._error(exception)
+        self.assertEqual(result['code'], 400)
+        self.assertEqual(result['error']['message'],
+                         "Unable to load class 'test' from package")
+
+    @mock.patch('traceback.format_exc')
+    def test_fault_wrapper(self, mock_trace):
+        mock_trace.return_value = "test trace"
+        fault_wrapper = fault.FaultWrapper(None)
+        exception_disguise = fault.HTTPExceptionDisguise(
+            exc.HTTPInternalServerError())
+        result = fault_wrapper._error(exception_disguise)
+        self.assertEqual(result['code'], 500)
+        self.assertEqual(result['explanation'],
+                         'The server has either erred or is incapable'
+                         ' of performing the requested operation.')
 
     def test_process_request(self):
-	CREDENTIALS = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
-	fault_wrapper = fault.FaultWrapper(None)
-	environ = {
+        fault_wrapper = fault.FaultWrapper(None)
+        environ = {
             'SERVER_NAME': 'server.test',
             'SERVER_PORT': '8082',
             'SERVER_PROTOCOL': 'http',
@@ -59,16 +73,22 @@ class FaultWrapperTest(base.MuranoTestCase):
             'wsgi.url_scheme': 'http',
             'QUERY_STRING': '',
             'CONTENT_TYPE': 'application/json',
-	    'REQUEST_METHOD': 'HEAD'
+            'REQUEST_METHOD': 'HEAD'
         }
-	req = wsgi.Request(environ)
-	req.get_response = mock.MagicMock(side_effect=exc.HTTPInternalServerError())
-	self.assertRaises(exc.HTTPInternalServerError, fault_wrapper.process_request, req)
+        req = wsgi.Request(environ)
+        req.get_response = mock.MagicMock(side_effect=exc.
+                                          HTTPInternalServerError())
+        self.assertRaises(exc.HTTPInternalServerError,
+                          fault_wrapper.process_request, req)
 
-    def test_fault_call(self):
-	fault_wrapper = fault.FaultWrapper(None)
-	test_fault = fault.Fault(fault_wrapper._error(exceptions.PackageClassLoadError("test")))
-	environ = {
+    @mock.patch('traceback.format_exc')
+    def test_fault_call(self, mock_trace):
+        mock_trace.return_value = "test trace"
+        fault_wrapper = fault.FaultWrapper(None)
+        exception = exceptions.PackageClassLoadError("test")
+        exception.message = "Unable to load class 'test' from package"
+        test_fault = fault.Fault(fault_wrapper._error(exception))
+        environ = {
             'SERVER_NAME': 'server.test',
             'SERVER_PORT': '8082',
             'SERVER_PROTOCOL': 'http',
@@ -80,6 +100,5 @@ class FaultWrapperTest(base.MuranoTestCase):
             'REQUEST_METHOD': 'HEAD'
         }
         req = wsgi.Request(environ)
-	response = jsonutils.loads(test_fault(req).body)
-	self.assertEquals(response['code'], 400)
-
+        response = jsonutils.loads(test_fault(req).body)
+        self.assertEqual(response['code'], 400)
