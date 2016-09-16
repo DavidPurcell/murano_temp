@@ -226,6 +226,8 @@ class TestSessionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
         )
         response = request.get_response(self.api)
         self.assertEqual(404, response.status_code)
+        session = unit.query(models.Session).get(SESSION_ID)
+        self.assertIsNone(session)
 
     @mock.patch('murano.db.services.environments.EnvironmentServices.'
                 'get_status')
