@@ -259,7 +259,8 @@ class TestHotPackage(test_base.MuranoTestCase):
             "check(len($) <= 50).check(len($) >= 0).check(matches($, '["
             "A-Za-z0-9]'))")
         param3 = params['Contract']['param3']
-        self.assertEqual(param3.expr, "$.int().check($ in list(0, 1, 2, 3, 4))"".check(len($) >= 0 and len($) <= 5).check($ >= 0 and $ <= 4)")
+        self.assertEqual(param3.expr, "$.int().check($ in list(0, 1, 2, 3, 4))"
+            ".check(len($) >= 0 and len($) <= 5).check($ >= 0 and $ <= 4)")
         param4 = params['Contract']['param4']
         self.assertEqual(param4.expr,"$.int().check($ >= -1000).check($ <= "
             "1000)")
