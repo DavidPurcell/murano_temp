@@ -16,6 +16,7 @@
 import cgi
 import imghdr
 import os
+import tempfile
 import uuid
 
 import mock
@@ -27,6 +28,7 @@ from six.moves import range
 from webob import exc
 
 from murano.api.v1 import catalog
+from murano.api.v1 import PKG_PARAMS_MAP
 from murano.common import exceptions as common_exc
 from murano.db.catalog import api as db_catalog_api
 from murano.db import models
@@ -54,7 +56,6 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         package_to_upload.update(kwargs)
         return db_catalog_api.package_upload(
             package_to_upload, tenant_name)
-
 
     def test_packages_filtering_admin(self):
         self.is_admin = True
@@ -482,8 +483,7 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
 
         # Test wheter an invalid order by value fails.
         order_by = 'TEST ORDER BY'
-        request = self._get('/catalog/packages',
-                            params={'order_by': order_by})
+        request = self._get('/catalog/packages', params={'order_by': order_by})
 
         self.expect_policy_check('get_package')
         self.expect_policy_check('manage_public_package')
@@ -491,6 +491,48 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         self.controller.search(request)
         self.assertEqual(len(warnings), 1)
         self.assertIn('parameter is not valid', warnings[0])
+
+    def test_packages_filter_by_limit(self):
+        """Test that packages are filtered by limit."""
+        self._set_policy_rules(
+            {'get_package': '',
+             'manage_public_package': ''}
+        )
+        pkg = self._add_pkg("test_tenant", type='Library')
+
+        request = self._get('/catalog/packages', params={'limit': '1'})
+        self.expect_policy_check('get_package')
+
+        self.expect_policy_check('manage_public_package')
+        res = self.controller.search(request)
+
+        self.assertIn('next_marker', res)
+        self.assertEqual(res['next_marker'], pkg['id'])
+
+    def test_packages_filter_by_limit_negative_cases(self):
+        """Test whether invalid limit values throw expected exceptions."""
+        self._set_policy_rules(
+            {'get_package': '',
+             'manage_public_package': ''}
+        )
+        self._add_pkg("test_tenant", type='Library')
+
+        # Test wheter non-number value throws exception
+        request = self._get('/catalog/packages',
+                            params={'limit': 'not a number'})
+        self.expect_policy_check('get_package')
+        self.expect_policy_check('manage_public_package')
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.search,
+                              request)
+        self.assertEqual(e.explanation, 'Limit param must be an integer')
+
+        # Test whether below-zero value throws exception
+        request = self._get('/catalog/packages', params={'limit': '-1'})
+        self.expect_policy_check('get_package')
+        self.expect_policy_check('manage_public_package')
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.search,
+                              request)
+        self.assertEqual(e.explanation, 'Limit param must be positive')
 
     @mock.patch('murano.common.utils.split_for_quotes')
     @mock.patch('murano.api.v1.catalog.LOG')
@@ -791,13 +833,159 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         self.assertTrue(b'Acceptable response can not be provided'
                         in result.body)
 
+    @mock.patch('murano.api.v1.catalog._validate_body')
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_with_invalid_schema(self, mock_policy_check,
+                                                mock_validate_body):
+        invalid_pkg_upload_schema = {"type": None}
+        mock_policy_check.return_value = True
+        mock_validate_body.return_value = (None, invalid_pkg_upload_schema)
+        mock_request = mock.MagicMock(context={})
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                              mock_request)
+        self.assertIn(
+            "Package schema is not valid",
+            e.explanation
+        )
+
+    @mock.patch('murano.api.v1.catalog._validate_body')
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_with_invalid_file_content(self, mock_policy_check,
+                                                      mock_validate_body):
+        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+            mock_policy_check.return_value = True
+            mock_validate_body.return_value = (mock.MagicMock(file=temp_file),
+                                               None)
+            mock_request = mock.MagicMock(context={})
+            e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                                  mock_request)
+            self.assertIn(
+                "Uploading file can't be empty",
+                e.explanation
+            )
+
+    @mock.patch('murano.api.v1.catalog.PKG_PARAMS_MAP')
+    @mock.patch('murano.packages.load_utils.load_from_file')
+    @mock.patch('murano.api.v1.catalog._validate_body')
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_with_oversized_file_name(self, mock_policy_check,
+                                                     mock_validate_body,
+                                                     mock_load_from_file,
+                                                     mock_pkg_params_map):
+        mock_policy_check.return_value = True
+        mock_load_from_file.return_value = mock.MagicMock(
+                __exit__=lambda obj, type, value, tb: False)
+        mock_pkg_params_map.return_value = {}
+        mock_request = mock.MagicMock(context=mock.MagicMock(
+            tenant=self.tenant))
+        test_package_meta = {'name': 'a'*81}
+        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+            temp_file.write("Random test content\n")
+            temp_file.seek(0)
+            mock_validate_body.return_value = \
+                (mock.MagicMock(file=temp_file), test_package_meta)
+            e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload, mock_request)
+            self.assertIn(
+                "Package name should be 80 characters maximum",
+                e.explanation
+            )
+
+    @mock.patch('murano.packages.load_utils.load_from_file')
+    @mock.patch('murano.api.v1.catalog._validate_body')
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_handle_package_load_error(self, mock_policy_check,
+                                                      mock_validate_body,
+                                                      mock_load_from_file):
+        pkg_to_upload = mock.MagicMock(
+            __exit__=lambda obj, type, value, tb: False)
+        mock_request = mock.MagicMock(context=mock.MagicMock(
+            tenant=self.tenant))
+        mock_load_from_file.return_value = pkg_to_upload
+        mock_load_from_file.side_effect = exceptions.PackageLoadError
+        mock_policy_check.return_value = True
+        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+            temp_file.write("Random test content\n")
+            temp_file.seek(0)
+            mock_validate_body.return_value = \
+                (mock.MagicMock(file=temp_file), None)
+            e = self.assertRaises(exc.HTTPBadRequest,
+                self.controller.upload, mock_request)
+            self.assertIn(
+                "Couldn't load package from file",
+                e.explanation
+            )
+
+    @mock.patch('murano.packages.load_utils.load_from_file')
+    @mock.patch('murano.api.v1.catalog._validate_body')
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_handle_duplicate_exception(self, mock_policy_check,
+                                                       mock_validate_body,
+                                                       mock_load_from_file):
+        """Test whether duplicate error is correctly thrown."""
+        # Save the first package entry to the DB
+        test_package_meta = self.test_package.copy()
+        test_package_meta['name'] = 'test_package'
+        test_package_meta['fully_qualified_name'] = str(uuid.uuid4())
+        test_package_meta['description'] = 'test_description'
+        test_package_meta['enabled'] = False
+        test_package_meta['is_public'] = False
+        db_catalog_api.package_upload(test_package_meta, self.tenant)
+
+        # Reverse the operation performed by upload for copying values from
+        # pkg_to_upload into package_meta dict.
+        pkg_to_upload = mock.MagicMock(
+            __exit__=lambda obj, type, value, tb: False)
+        for k, v in six.iteritems(PKG_PARAMS_MAP):
+            print k, v
+            if v in test_package_meta.keys():
+                val = test_package_meta[v]
+                setattr(pkg_to_upload.__enter__(), k, val)
+
+        # Delete extra properties so validation in upload passes.
+        for attr in ['fully_qualified_name', 'ui_definition', 'author',
+                     'supplier_logo', 'supplier', 'logo', 'type', 'archive']:
+            if attr in test_package_meta.keys():
+                del test_package_meta[attr]
+
+        mock_request = mock.MagicMock(context=mock.MagicMock(
+            tenant=self.tenant))
+        mock_load_from_file.return_value = pkg_to_upload
+        mock_policy_check.return_value = True
+
+        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+            temp_file.write("Random test content\n")
+            temp_file.seek(0)
+            mock_validate_body.return_value = \
+                (mock.MagicMock(file=temp_file), test_package_meta)
+            e = self.assertRaises(exc.HTTPConflict, self.controller.upload, mock_request)
+            self.assertIn(
+                "Package with specified full name is already registered",
+                e.detail
+            )
+
     @mock.patch('murano.common.policy.check')
     def test_upload_package_with_oversized_body(self, mock_policy_check):
         mock_policy_check.return_value = True
         packages_to_upload = {'a': 0, 'b': 1, 'c': 2}
         mock_request = mock.MagicMock(context={})
-        self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
-                          mock_request, body=packages_to_upload)
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                              mock_request, body=packages_to_upload)
+        self.assertIn(
+            "'multipart/form-data' request body should contain 1 or 2 "
+            "parts: json string and zip archive.",
+            e.explanation
+        )
+
+    @mock.patch('murano.common.policy.check')
+    def test_upload_package_with_empty_body(self, mock_policy_check):
+        mock_policy_check.return_value = True
+        packages_to_upload = {}
+        mock_request = mock.MagicMock(context={})
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                              mock_request, body=packages_to_upload)
+        self.assertEqual(
+            'There is no file package with application description',
+            e.explanation)
 
     def test_get_ui_definition(self):
         self._set_policy_rules(
