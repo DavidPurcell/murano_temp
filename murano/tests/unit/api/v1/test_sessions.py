@@ -226,6 +226,7 @@ class TestSessionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
         )
         response = request.get_response(self.api)
         self.assertEqual(404, response.status_code)
+        unit = db_session.get_session()
         session = unit.query(models.Session).get(SESSION_ID)
         self.assertIsNone(session)
 
