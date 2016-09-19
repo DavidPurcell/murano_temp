@@ -550,8 +550,7 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         )
         self._add_pkg("test_tenant", type='Library')
         tag_in = "in:tag1,tag3"
-        req = self._get('/catalog/packages',
-                        params={'tag': tag_in})
+        self._get('/catalog/packages', params={'tag': tag_in})
         request = self._get('/catalog/packages',
                             params={'tag': tag_in})
 
@@ -871,17 +870,18 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
                                                      mock_pkg_params_map):
         mock_policy_check.return_value = True
         mock_load_from_file.return_value = mock.MagicMock(
-                __exit__=lambda obj, type, value, tb: False)
+            __exit__=lambda obj, type, value, tb: False)
         mock_pkg_params_map.return_value = {}
         mock_request = mock.MagicMock(context=mock.MagicMock(
             tenant=self.tenant))
         test_package_meta = {'name': 'a'*81}
         with tempfile.NamedTemporaryFile(delete=True) as temp_file:
-            temp_file.write("Random test content\n")
+            temp_file.write(b"Random test content\n")
             temp_file.seek(0)
             mock_validate_body.return_value = \
                 (mock.MagicMock(file=temp_file), test_package_meta)
-            e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload, mock_request)
+            e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                                  mock_request)
             self.assertIn(
                 "Package name should be 80 characters maximum",
                 e.explanation
@@ -901,12 +901,12 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         mock_load_from_file.side_effect = exceptions.PackageLoadError
         mock_policy_check.return_value = True
         with tempfile.NamedTemporaryFile(delete=True) as temp_file:
-            temp_file.write("Random test content\n")
+            temp_file.write(b"Random test content\n")
             temp_file.seek(0)
             mock_validate_body.return_value = \
                 (mock.MagicMock(file=temp_file), None)
-            e = self.assertRaises(exc.HTTPBadRequest,
-                self.controller.upload, mock_request)
+            e = self.assertRaises(exc.HTTPBadRequest, self.controller.upload,
+                                  mock_request)
             self.assertIn(
                 "Couldn't load package from file",
                 e.explanation
@@ -933,7 +933,6 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         pkg_to_upload = mock.MagicMock(
             __exit__=lambda obj, type, value, tb: False)
         for k, v in six.iteritems(PKG_PARAMS_MAP):
-            print k, v
             if v in test_package_meta.keys():
                 val = test_package_meta[v]
                 setattr(pkg_to_upload.__enter__(), k, val)
@@ -950,11 +949,12 @@ class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
         mock_policy_check.return_value = True
 
         with tempfile.NamedTemporaryFile(delete=True) as temp_file:
-            temp_file.write("Random test content\n")
+            temp_file.write(b"Random test content\n")
             temp_file.seek(0)
             mock_validate_body.return_value = \
                 (mock.MagicMock(file=temp_file), test_package_meta)
-            e = self.assertRaises(exc.HTTPConflict, self.controller.upload, mock_request)
+            e = self.assertRaises(exc.HTTPConflict, self.controller.upload,
+                                  mock_request)
             self.assertIn(
                 "Package with specified full name is already registered",
                 e.detail
@@ -1190,7 +1190,7 @@ This is a fake zip archive
 
         body = {'name': 'new_category'}
         req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
-        result = req.get_response(self.api)
+        req.get_response(self.api)
 
         self.expect_policy_check('get_category')
         req = self._get('/catalog/categories')
@@ -1239,7 +1239,7 @@ This is a fake zip archive
 
         req = self._delete('/catalog/categories/12345')
         e = self.assertRaises(exc.HTTPForbidden,
-                             self.controller.delete_category, req, '12345')
+                              self.controller.delete_category, req, '12345')
         self.assertEqual(e.explanation,
                          "It's impossible to delete categories assigned to the"
                          " package, uploaded to the catalog")
@@ -1252,7 +1252,7 @@ This is a fake zip archive
         body = {'name': ''}
         req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
         e = self.assertRaises(exc.HTTPBadRequest, self.controller.add_category,
-                             req, body)
+                              req, body)
         self.assertEqual("Please, specify a name of the category to create",
                          e.explanation)
 
