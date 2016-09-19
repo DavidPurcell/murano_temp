@@ -13,21 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import murano.tests.unit.api.base as tb
+
 from oslo_config import fixture as config_fixture
 from oslo_serialization import jsonutils
 
 from murano.api.v1 import environments
-from murano.api.v1 import sessions
 from murano.api.v1 import services
-import murano.tests.unit.api.base as tb
+from murano.api.v1 import sessions
+
 from webob import exc
 
+
 class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
+
     def setUp(self):
         super(TestServicesApi, self).setUp()
         self.environments_controller = environments.Controller()
         self.sessions_controller = sessions.Controller()
-	self.services_controller = services.Controller()
+        self.services_controller = services.Controller()
         self.fixture = self.useFixture(config_fixture.Config())
         self.fixture.conf(args=[])
 
@@ -50,15 +54,10 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         environment_id = response_body['id']
 
-        print("env id" + environment_id)
-
         # Create session
-        request = self._post(
-            '/environments/{environment_id}/configure'
-            .format(environment_id=environment_id),
-            b'',
-            **CREDENTIALS_1
-        )
+        request = self._post('/environments/{environment_id}/configure'
+                             .format(environment_id=environment_id), b'',
+                             **CREDENTIALS_1)
         response_body = jsonutils.loads(request.get_response(self.api).body)
 
         session_id = response_body['id']
@@ -66,20 +65,20 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
         path = "/"
 
         request = self._post('/v1/environments/{0}/services'.
-                         format(environment_id,session_id),b'',
-            **CREDENTIALS_1
-        )
-	request.headers['X-Configuration-Session'] = str(session_id)
-	request.context.session = session_id
+                             format(environment_id, session_id), b'',
+                             **CREDENTIALS_1)
+        request.headers['X-Configuration-Session'] = str(session_id)
+        request.context.session = session_id
 
-	self.assertRaises(exc.HTTPBadRequest, self.services_controller.post, 
-                        request, environment_id, path)
+        self.assertRaises(exc.HTTPBadRequest, self.services_controller.post,
+                          request, environment_id, path)
 
-	response = self.services_controller.post(request, environment_id, path, "test service")
-	self.assertEquals("test service", response)
+        response = self.services_controller.post(request, environment_id,
+                                                 path, "test service")
+        self.assertEqual("test service", response)
 
     def test_can_put(self):
-	CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
+        CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
         self._set_policy_rules(
             {'create_environment': '@'}
         )
@@ -97,13 +96,10 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         environment_id = response_body['id']
 
-        # Create session 
-        request = self._post(
-            '/environments/{environment_id}/configure'
-            .format(environment_id=environment_id),
-            b'',
-            **CREDENTIALS_1
-        )
+        # Create session
+        request = self._post('/environments/{environment_id}/configure'
+                             .format(environment_id=environment_id), b'',
+                             **CREDENTIALS_1)
         response_body = jsonutils.loads(request.get_response(self.api).body)
 
         session_id = response_body['id']
@@ -111,17 +107,17 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
         path = "/"
 
         request = self._put('/v1/environments/{0}/services'.
-                         format(environment_id,session_id),b'',
-            **CREDENTIALS_1
-        )
+                            format(environment_id, session_id), b'',
+                            **CREDENTIALS_1)
         request.headers['X-Configuration-Session'] = str(session_id)
         request.context.session = session_id
 
-	self.assertRaises(exc.HTTPBadRequest, self.services_controller.post,
-                        request, environment_id, path)
+        self.assertRaises(exc.HTTPBadRequest, self.services_controller.post,
+                          request, environment_id, path)
 
-        response = self.services_controller.put(request, environment_id, path, "test service")	
-	self.assertEquals("test service", response)
+        response = self.services_controller.put(request, environment_id,
+                                                path, "test service")
+        self.assertEqual("test service", response)
 
     def test_can_get(self):
         CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
@@ -142,44 +138,37 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         environment_id = response_body['id']
 
-	print("env id" + environment_id)
-
         # Create session
-        request = self._post(
-            '/environments/{environment_id}/configure'
-            .format(environment_id=environment_id),
-            b'',
-            **CREDENTIALS_1
-        )
+        request = self._post('/environments/{environment_id}/configure'
+                             .format(environment_id=environment_id), b'',
+                             **CREDENTIALS_1)
         response_body = jsonutils.loads(request.get_response(self.api).body)
 
         session_id = response_body['id']
 
-	# Create service
-	path = '/'
-	request = self._post('/v1/environments/{0}/services'.
-                         format(environment_id,session_id),b'',
-            **CREDENTIALS_1
-        )
+        # Create service
+        path = '/'
+        request = self._post('/v1/environments/{0}/services'.
+                             format(environment_id, session_id), b'',
+                             **CREDENTIALS_1)
         request.headers['X-Configuration-Session'] = str(session_id)
         request.context.session = session_id
 
-        response = self.services_controller.post(request, environment_id, path, "test service")
-	print(response)
-	# Get service
-	request = self._get('/v1/environments/{0}/services'.
-                         format(environment_id),b'',
-            **CREDENTIALS_1
-	)
+        response = self.services_controller.post(request, environment_id,
+                                                 path, "test service")
+        # Get service
+        request = self._get('/v1/environments/{0}/services'.
+                            format(environment_id), b'',
+                            **CREDENTIALS_1)
 
         response = self.services_controller.get(request, environment_id, path)
-        self.assertEquals([],response)
+        self.assertEqual([], response)
 
-	request.headers['X-Configuration-Session'] = str(session_id)
+        request.headers['X-Configuration-Session'] = str(session_id)
         request.context.session = session_id
 
-	response = self.services_controller.get(request, environment_id, path)
-	self.assertNotEquals([], response)
+        response = self.services_controller.get(request, environment_id, path)
+        self.assertNotEqual([], response)
 
     def test_can_delete(self):
         CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
@@ -200,14 +189,11 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         environment_id = response_body['id']
 
-        print("env id" + environment_id)
-
         # Create session
         request = self._post(
             '/environments/{environment_id}/configure'
             .format(environment_id=environment_id),
-            b'',
-            **CREDENTIALS_1
+            b'', **CREDENTIALS_1
         )
         response_body = jsonutils.loads(request.get_response(self.api).body)
 
@@ -216,26 +202,24 @@ class TestServicesApi(tb.ControllerTest, tb.MuranoApiTestCase):
         # Create service
         path = '/'
         request = self._post('/v1/environments/{0}/services'.
-                         format(environment_id,session_id),b'',
-            **CREDENTIALS_1
-        )
+                             format(environment_id, session_id), b'',
+                             **CREDENTIALS_1)
         request.headers['X-Configuration-Session'] = str(session_id)
         request.context.session = session_id
 
-        response = self.services_controller.post(request, environment_id, path, "test service")
-        
-	# Delete service
+        self.services_controller.post(request, environment_id,
+                                      path, "test service")
+
+        # Delete service
         request = self._delete('/v1/environments/{0}/services'.
-                         format(environment_id),b'',
-            **CREDENTIALS_1
-        )
+                               format(environment_id), b'',
+                               **CREDENTIALS_1)
 
-	self.assertRaises(exc.HTTPBadRequest, self.services_controller.delete,
-                        request, environment_id, path)
-
+        self.assertRaises(exc.HTTPBadRequest, self.services_controller.delete,
+                          request, environment_id, path)
 
         request.headers['X-Configuration-Session'] = str(session_id)
         request.context.session = session_id
 
-	self.assertRaises(exc.HTTPNotFound, self.services_controller.delete,
-                        request, environment_id, path)
+        self.assertRaises(exc.HTTPNotFound, self.services_controller.delete,
+                          request, environment_id, path)
