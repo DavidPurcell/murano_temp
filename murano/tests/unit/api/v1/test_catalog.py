@@ -20,6 +20,7 @@ import tempfile
 import uuid
 
 import mock
+from oslo_config import cfg
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 import six
@@ -36,6 +37,8 @@ from murano.packages import exceptions
 from murano.packages import load_utils
 import murano.tests.unit.api.base as test_base
 import murano.tests.unit.utils as test_utils
+
+CONF = cfg.CONF
 
 
 class TestCatalogApi(test_base.ControllerTest, test_base.MuranoApiTestCase):
@@ -1152,9 +1155,51 @@ This is a fake zip archive
         expected['id'] = processed_result['id']
         self.assertEqual(expected, processed_result)
 
+    def test_get_category(self):
+        """Check that get category executed successfully"""
+
+        self._set_policy_rules({'add_category': '@', 'get_category': '@'})
+        self.expect_policy_check('add_category')
+
+        fake_now = timeutils.utcnow()
+        timeutils.utcnow.override_time = fake_now
+
+        expected = {
+            'name': 'new_category',
+            'created': timeutils.isotime(fake_now)[:-1],
+            'updated': timeutils.isotime(fake_now)[:-1],
+            'package_count': 0,
+            'packages': []
+        }
+
+        body = {'name': 'new_category'}
+        req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
+        result = req.get_response(self.api)
+        expected['id'] = jsonutils.loads(result.body)['id']
+
+        self.expect_policy_check('get_category')
+        req = self._get('/catalog/categories/%s' % expected['id'])
+        retrieved_category = jsonutils.loads(req.get_response(self.api).body)
+        self.assertEqual(retrieved_category, expected)
+
+    def test_show_categories(self):
+        """Check that show categories executed successfully"""
+
+        self._set_policy_rules({'add_category': '@', 'get_category': '@'})
+        self.expect_policy_check('add_category')
+
+        body = {'name': 'new_category'}
+        req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
+        result = req.get_response(self.api)
+
+        self.expect_policy_check('get_category')
+        req = self._get('/catalog/categories')
+        retrieved_categories = self.controller.show_categories(req)
+        self.assertEqual(len(retrieved_categories), 1)
+        self.assertIn('new_category', retrieved_categories['categories'])
+
     def test_delete_category(self):
         """Check that category deleted successfully"""
-
         self._set_policy_rules({'delete_category': '@'})
         self.expect_policy_check('delete_category',
                                  {'category_id': '12345'})
@@ -1173,9 +1218,62 @@ This is a fake zip archive
         self.assertEqual(b'', processed_result.body)
         self.assertEqual(200, processed_result.status_code)
 
+    @mock.patch('murano.db.catalog.api.category_get')
+    def test_delete_category_with_packages_negative(self, mock_get_category):
+        """Check that deleting category that has assigned packages fails."""
+        mock_get_category.return_value = mock.MagicMock(
+            packages=['test_package'])
+
+        self._set_policy_rules({'delete_category': '@'})
+        self.expect_policy_check('delete_category',
+                                 {'category_id': '12345'})
+
+        fake_now = timeutils.utcnow()
+        expected = {'name': 'new_category',
+                    'created': fake_now,
+                    'updated': fake_now,
+                    'id': '12345'}
+
+        category = models.Category(**expected)
+        test_utils.save_models(category)
+
+        req = self._delete('/catalog/categories/12345')
+        e = self.assertRaises(exc.HTTPForbidden,
+                             self.controller.delete_category, req, '12345')
+        self.assertEqual(e.explanation,
+                         "It's impossible to delete categories assigned to the"
+                         " package, uploaded to the catalog")
+
+    def test_add_category_without_name(self):
+        """Test whether adding a category without a name throws exception."""
+        self._set_policy_rules({'add_category': '@'})
+        self.expect_policy_check('add_category')
+
+        body = {'name': ''}
+        req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
+        e = self.assertRaises(exc.HTTPBadRequest, self.controller.add_category,
+                             req, body)
+        self.assertEqual("Please, specify a name of the category to create",
+                         e.explanation)
+
+    def test_add_category_handle_duplicate_exception(self):
+        """Test whether creating duplicate categories throws exception."""
+        self._set_policy_rules({'add_category': '@'})
+        self.expect_policy_check('add_category')
+        self.expect_policy_check('add_category')
+
+        body = {'name': 'new_category'}
+        req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
+        self.controller.add_category(req, body)
+
+        req = self._post('/catalog/categories', jsonutils.dump_as_bytes(body))
+        e = self.assertRaises(exc.HTTPConflict, self.controller.add_category,
+                              req, body)
+        self.assertEqual("Category with specified name is already exist",
+                         e.explanation)
+
     def test_add_category_failed_for_non_admin(self):
         """Check that non admin user couldn't add new category"""
-
         self._set_policy_rules({'add_category': 'role:context_admin'})
         self.is_admin = False
         self.expect_policy_check('add_category')
