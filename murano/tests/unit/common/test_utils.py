@@ -12,14 +12,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from murano.common import utils
-from murano.tests.unit import base
 import datetime
-import imp
-import six
 import json
 
+from murano.common import utils
+
+from murano.tests.unit import base
+
+
 class UtilsTests(base.MuranoTestCase):
+
     def test_validate_quotes(self):
         self.assertEqual(True, utils.validate_quotes('"ab"'))
 
@@ -39,70 +41,72 @@ class UtilsTests(base.MuranoTestCase):
         self.assertEqual(['a"bc', 'de', 'fg,h', r'klm\\', '"nop'],
                          utils.split_for_quotes(r'"a\"bc","de",'
                                                 r'"fg,h","klm\\","\"nop"'))
+
     def test_validate_body(self):
-	json_schema = json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}])
-	print(dir(utils.validate_body(json_schema)))
+        json_schema = json.dumps(['foo', {'bar': ('baz', None, 1.0, 2)}])
+        self.assertNotEqual(None, utils.validate_body(json_schema))
 
-	json_schema = json.dumps(['body', {'body': ('baz', None, 1.0, 2)}])
-        print(dir(utils.validate_body(json_schema)))
-
+        json_schema = json.dumps(['body', {'body': ('baz', None, 1.0, 2)}])
+        self.assertNotEqual(None, utils.validate_body(json_schema))
 
     def test_build_entity_map(self):
-	entity = {"?": {"fun": "id"}}
+        entity = {"?": {"fun": "id"}}
         self.assertEqual({}, utils.build_entity_map(entity))
 
-	entity = {"?": {"id": "id"}}
-        self.assertEqual({'id': {'?': {'id': 'id'}}}, utils.build_entity_map(entity))
+        entity = {"?": {"id": "id"}}
+        self.assertEqual({'id': {'?': {'id': 'id'}}},
+                         utils.build_entity_map(entity))
 
-	entity = [{"?": {"id": "id1"}},{"?": {"id": "id2"}}]
-        self.assertEqual({'id1': {'?': {'id': 'id1'}}, 'id2': {'?': {'id': 'id2'}}},
-					 utils.build_entity_map(entity))
+        entity = [{"?": {"id": "id1"}}, {"?": {"id": "id2"}}]
+        self.assertEqual({'id1': {'?': {'id': 'id1'}},
+                          'id2': {'?': {'id': 'id2'}}},
+                         utils.build_entity_map(entity))
 
     def test_is_different(self):
         t1 = "Hello"
-	t2 = "World"
-	self.assertTrue(utils.is_different(t1,t2))
+        t2 = "World"
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t1 = "Hello"
+        t1 = "Hello"
         t2 = "Hello"
-        self.assertFalse(utils.is_different(t1,t2))
+        self.assertFalse(utils.is_different(t1, t2))
 
-	t1 = {1,2,3,4}
-	t2 = t1
-	self.assertFalse(utils.is_different(t1,t2))
-	
-	t2 = {1,2,3}
-	self.assertTrue(utils.is_different(t1,t2))
+        t1 = {1, 2, 3, 4}
+        t2 = t1
+        self.assertFalse(utils.is_different(t1, t2))
 
-	t1 = [1,2,{1,2,3,4}]
-	t1[0] = t1        
-        self.assertTrue(utils.is_different(t1,t2))
-	
-	t1 = [t2]
-	t2 = [t1]
-	self.assertTrue(utils.is_different(t1,t2))
-	
-	t1 = [{1,2,3},{1,2,3}]
-	t2 = [{1,2,3},{1,2}]
-	self.assertTrue(utils.is_different(t1,t2))
-	
-	t1 = datetime.date(2016, 8, 8)
+        t2 = {1, 2, 3}
+        self.assertTrue(utils.is_different(t1, t2))
+
+        t1 = [1, 2, {1, 2, 3, 4}]
+        t1[0] = t1
+        self.assertTrue(utils.is_different(t1, t2))
+
+        t1 = [t2]
+        t2 = [t1]
+        self.assertTrue(utils.is_different(t1, t2))
+
+        t1 = [{1, 2, 3}, {1, 2, 3}]
+        t2 = [{1, 2, 3}, {1, 2}]
+        self.assertTrue(utils.is_different(t1, t2))
+
+        t1 = datetime.date(2016, 8, 8)
         t2 = datetime.date(2016, 8, 7)
-        self.assertTrue(utils.is_different(t1,t2))
- 	
-	t1 = {1: 1, 2: 2, 3: 3}
+        self.assertTrue(utils.is_different(t1, t2))
+
+        t1 = {1: 1, 2: 2, 3: 3}
         t2 = {1: 1, 2: 4, 3: 3}
-	self.assertTrue(utils.is_different(t1,t2))
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t1 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": [1, 2, 3]}}
+        t1 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": [1, 2, 3]}}
         t2 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": "world\n\n\nEnd"}}
-	self.assertTrue(utils.is_different(t1,t2))
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t1 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": [1, 2, 5]}}
+        t1 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": [1, 2, 5]}}
         t2 = {1: 1, 2: 2, 3: 3, 4: {"a": "hello", "b": [1, 3, 2, 5]}}
-	self.assertTrue(utils.is_different(t1,t2))
+        self.assertTrue(utils.is_different(t1, t2))
 
-	class ClassA(object):
+        class ClassA(object):
             __slots__ = ['x', 'y']
 
             def __init__(self, x, y):
@@ -111,26 +115,24 @@ class UtilsTests(base.MuranoTestCase):
 
         t1 = ClassA(1, 1)
         t2 = ClassA(1, 2)
-	self.assertTrue(utils.is_different(t1,t2))
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t1 = [1, 2, 3]
+        t1 = [1, 2, 3]
         t1.append(t1)
 
         t2 = [1, 2, 4]
         t2.append(t2)
-	self.assertTrue(utils.is_different(t1,t2))
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t1 = [1, 2, 3]
+        t1 = [1, 2, 3]
         t2 = [1, 2, 4]
         t2.append(t1)
-	t1.append(t2)
-        self.assertTrue(utils.is_different(t1,t2))
+        t1.append(t2)
+        self.assertTrue(utils.is_different(t1, t2))
 
-    	t1 = utils
-        t2 = datetime 
-	self.assertTrue(utils.is_different(t1,t2))
+        t1 = utils
+        t2 = datetime
+        self.assertTrue(utils.is_different(t1, t2))
 
-	t2 = "Not a module"
-	self.assertTrue(utils.is_different(t1,t2))
-
-	print(isinstance("1234", six.string_types)) 
+        t2 = "Not a module"
+        self.assertTrue(utils.is_different(t1, t2))

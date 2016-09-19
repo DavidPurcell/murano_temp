@@ -14,19 +14,22 @@
 #    under the License.
 
 import webob
-import mock
-from keystoneauth1 import exceptions
-from oslo_serialization import base64
+
+from murano.api import versions
+
 from murano.api.middleware import version_negotiation
-from oslo_config import cfg
+
 from murano.tests.unit import base
+
+from oslo_config import cfg
 
 CONF = cfg.CONF
 
-class MiddlewareContextTest(base.MuranoTestCase):
 
-    def test_middleware_ext_context_default(self):
-        middleware = version_negotiation.VersionNegotiationFilter(None)
+class MiddlewareVersionNegotiationTest(base.MuranoTestCase):
+
+    def test_middleware_version_negotiation_default(self):
+        middleware_vn = version_negotiation.VersionNegotiationFilter(None)
         request = webob.Request.blank('/environments')
-        result = middleware.process_request(request)
-
+        result = middleware_vn.process_request(request)
+        self.assertTrue(isinstance(result, versions.Controller))
