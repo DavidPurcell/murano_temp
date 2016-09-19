@@ -232,9 +232,9 @@ class ControllerTest(object):
         return self._data_request(path, data, content_type, method='PUT',
                                   params=params, user=user, tenant=tenant)
 
-    def _patch(self, path, data, content_type='application/murano-packages'
-               '-json-patch', params=None, user=DEFAULT_USER,
-               tenant=DEFAULT_TENANT):
+    def _patch(self, path, data,
+               content_type='application/murano-packages-json-patch',
+               params=None, user=DEFAULT_USER, tenant=DEFAULT_TENANT):
         if params is None:
             params = {}
         return self._data_request(path, data, content_type, method='PATCH',
