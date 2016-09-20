@@ -26,6 +26,7 @@ from webob import exc
 
 
 class TestDeploymentsApi(tb.ControllerTest, tb.MuranoApiTestCase):
+
     def setUp(self):
         super(TestDeploymentsApi, self).setUp()
         self.environments_controller = environments.Controller()

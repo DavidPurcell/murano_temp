@@ -1,5 +1,6 @@
 # Copyright (c) 2015 Telefonica I+D.
-
+# Copyright (c) 2016 AT&T Corp
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -90,7 +91,7 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
         self.assertEqual(expected, jsonutils.loads(result.body))
 
     @mock.patch('murano.db.services.environment_templates.EnvTemplateServices.'
-        'create')
+                'create')
     def test_create_env_templates_handle_duplicate_exc(self, mock_function):
         """Create an template, test template.show()."""
         self._set_policy_rules(
@@ -170,7 +171,7 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
         self.assertEqual(result.status_code, 403)
 
     @mock.patch('murano.db.services.environment_templates.EnvTemplateServices.'
-        'clone')
+                'clone')
     def test_clone_env_templates_handle_duplicate_exc(self, mock_function):
         """Test whether clone duplication exception is handled correctly."""
         mock_function.side_effect = db_exc.DBDuplicateEntry
@@ -444,7 +445,7 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
         req = self._put('/templates/12345', jsonutils.dump_as_bytes(body))
         result = req.get_response(self.api)
         self.assertEqual(400, result.status_code)
-        self.assertIn('EnvTemplate body is incorrect', result.body)
+        self.assertIn(b'EnvTemplate body is incorrect', result.body)
 
         # Verify that the name was not changed.
         self.expect_policy_check('show_env_template',
@@ -453,7 +454,7 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
         result = req.get_response(self.api)
         self.assertEqual(200, result.status_code)
         self.assertEqual(expected['name'],
-            jsonutils.loads(result.body)['name'])
+                         jsonutils.loads(result.body)['name'])
 
     def test_delete_env_templates(self):
         """Test that environment deletion results in the correct rpc call."""
@@ -770,7 +771,6 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
                          self.uuids[0], jsonutils.dump_as_bytes(body))
         result = req.get_response(self.api)
 
-
         self.assertIsNotNone(result)
         self.assertEqual(200, result.status_code)
         body_returned = jsonutils.loads(result.body)
@@ -878,7 +878,7 @@ class TestEnvTemplateApi(tb.ControllerTest, tb.MuranoApiTestCase):
         self.assertEqual(404, result.status_code)
 
     @mock.patch('murano.db.services.environment_templates.EnvTemplateServices.'
-        'get_env_template')
+                'get_env_template')
     def test_validate_request_handle_forbidden_exc(self, mock_function):
         """Test whether forbidden exception is thrown with different tenant."""
         self._set_policy_rules(

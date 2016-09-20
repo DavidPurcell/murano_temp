@@ -120,7 +120,11 @@ class TestStaticActionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
         exc_types.append(exc_type)
         self.assertEqual(mock_execute.call_count, len(exc_types))
 
-        exc_type = ValueError
+        try:
+            int('this will throw a value error')
+        except ValueError as e:
+            setattr(e, 'message', None)
+            exc_type = e
         mock_execute.side_effect = exc_type
         req = self._post('/actions', jsonutils.dump_as_bytes(request_data))
         self.assertRaises(exc.HTTPBadRequest, self.controller.execute,
