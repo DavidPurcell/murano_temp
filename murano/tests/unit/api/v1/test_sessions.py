@@ -26,6 +26,7 @@ import murano.tests.unit.api.base as tb
 
 from webob import exc
 
+
 class TestSessionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
     def setUp(self):
         super(TestSessionsApi, self).setUp()

@@ -38,15 +38,15 @@ class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
         super(TestInitApi, self).setUp()
         self.environments_controller = environments.Controller()
         self.sessions_controller = sessions.Controller()
-	self.statistics_controller = instance_statistics.Controller()
+        self.statistics_controller = instance_statistics.Controller()
         self.fixture = self.useFixture(config_fixture.Config())
         self.fixture.conf(args=[])
 
     def test_get_aggregated(self):
-	CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
+        CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
         self._set_policy_rules(
             {'create_environment': '@',
-	     'get_aggregated_statistics': '@'}
+             'get_aggregated_statistics': '@'}
         )
         self.expect_policy_check('create_environment')
 
@@ -59,17 +59,19 @@ class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
         response_body = jsonutils.loads(request.get_response(self.api).body)
         environment_id = response_body['id']
 
-	self.expect_policy_check('get_aggregated_statistics', {'environment_id': environment_id})
+        self.expect_policy_check('get_aggregated_statistics',
+                                 {'environment_id': environment_id})
 
-	result = self.statistics_controller.get_aggregated(request, environment_id)
-	self.assertEquals([], result)
+        result = self.statistics_controller.get_aggregated(request,
+                                                           environment_id)
+        self.assertEquals([], result)
 
     def test_get_for_instance(self):
-	CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
+        CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
         self._set_policy_rules(
             {'create_environment': '@',
              'get_aggregated_statistics': '@',
-	     'get_instance_statistics': '@'}
+         'get_instance_statistics': '@'}
         )
         self.expect_policy_check('create_environment')
 

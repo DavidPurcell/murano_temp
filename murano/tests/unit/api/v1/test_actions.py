@@ -1,4 +1,5 @@
 # Copyright (c) 2014 Hewlett-Packard Development Company, L.P.
+# Copyright (c) 2016 AT&T Corp
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +23,6 @@ from murano.api.v1 import actions
 from murano.common import policy
 from murano.db import models
 from murano.db import session as db_session
-from murano.db.services import environments as envs
-from murano.db.services import sessions
 from murano.services import states
 import murano.tests.unit.api.base as tb
 import murano.tests.unit.utils as test_utils
@@ -143,9 +142,9 @@ class TestActionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
         user_id = req.context.user
 
         self._create_session_with_state(environment, user_id,
-            states.SessionState.DEPLOYING)
+                                        states.SessionState.DEPLOYING)
         self.assertRaises(exc.HTTPForbidden, self.controller.execute,
-            req, '12345', 'actionsID_action', {})
+                          req, '12345', 'actionsID_action', {})
 
     def test_execute_action_with_session_in_deleting_state(self, _):
         """Test whether session in deleting state throws error."""
@@ -180,13 +179,13 @@ class TestActionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
         user_id = req.context.user
 
         self._create_session_with_state(environment, user_id,
-            states.SessionState.DELETING)
+                                        states.SessionState.DELETING)
         self.assertRaises(exc.HTTPForbidden, self.controller.execute,
-            req, '12345', 'actionsID_action', {})
+                          req, '12345', 'actionsID_action', {})
 
     @mock.patch('murano.db.services.sessions.SessionServices.validate')
     def test_execute_action_with_invalid_session_version(self, mocked_function,
-        _):
+                                                         _):
         """Test whether validate session function throws error."""
         self._set_policy_rules(
             {'execute_action': '@'}
@@ -219,7 +218,7 @@ class TestActionsApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         mocked_function.return_value = False
         self.assertRaises(exc.HTTPForbidden, self.controller.execute,
-            req, '12345', 'actionsID_action', {})
+                          req, '12345', 'actionsID_action', {})
 
     def test_get_result(self, _):
         """Result of task with given id and environment id is returned."""

@@ -10,6 +10,7 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
+import collections
 import os
 import shutil
 import tempfile
@@ -192,4 +193,69 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
 
         self.api_loader.load_class_package.assert_called_with(
             self.api_pkg_name, spec)
+
+    def test_register_package(self):
+        self.loader.register_package(self.api_pkg_name)
+        self.api_loader.register_package.assert_called_with(
+            self.api_pkg_name)
+
+    def test_export_fixation_table(self):
+        test_fixations = {'test_fix_1': ['1.0.0', '1.1.0']}
+        test_fixations_other = {'test_fix_2': ['2.0.0', '2.1.0']}
+        expected_fixations = dict(test_fixations, **test_fixations_other)
+
+        self.api_loader.export_fixation_table.return_value = test_fixations
+        self.loader.directory_loaders[0].export_fixation_table =\
+            mock.MagicMock(return_value=test_fixations_other)
+        serialized_fixations = self.loader.export_fixation_table()
+        self.assertEqual(1, self.api_loader.export_fixation_table.call_count)
+
+        for name, versions in serialized_fixations.iteritems():
+            versions.sort()
+        self.assertEqual(serialized_fixations, expected_fixations)
+
+    def test_import_fixation_table(self):
+        expected_fixations = {'test_fix_1': ['1.0.0', '1.1.0']}
+        self.api_loader.import_fixation_table = mock.MagicMock()
+
+        self.loader.import_fixation_table(expected_fixations)
+        self.api_loader.import_fixation_table.assert_called_once_with(
+            expected_fixations)
+        for name, versions in self.loader.directory_loaders[0]._fixations.\
+            iteritems():
+            for version in versions:
+                self.assertIn(str(version), expected_fixations[name])
+                expected_fixations[name].pop(
+                    expected_fixations[name].index(str(version)))
+
+    def test_compact_fixation_table(self):
+        expected_fixations = {'test_fix_1': ['1.0.0', '1.1.0']}
+        self.api_loader.import_fixation_table = mock.MagicMock()
+        self.api_loader.compact_fixation_table = mock.MagicMock()
+
+        self.loader.import_fixation_table(expected_fixations)
+        self.api_loader.import_fixation_table.assert_called_once_with(
+            expected_fixations)
+        self.loader.compact_fixation_table()
+        self.api_loader.compact_fixation_table.assert_called_once_with()
+        for name, versions in self.loader.directory_loaders[0]._fixations.\
+            iteritems():
+            for version in versions:
+                self.assertIn(str(version), expected_fixations[name])
+                expected_fixations[name].pop(
+                    expected_fixations[name].index(str(version)))
+
+
+# class TestApiPackageLoader(base.MuranoTestCase):
+
+#     @classmethod
+#     def setUpClass(cls):
+#         super(TestCombinedPackageLoader, cls).setUpClass()
+
+#         cls.execution_session = mock.MagicMock()
+#         cls.loader = package_loader.ApiPackageLoader(
+#             cls.execution_session)
+
+#         cls.local_pkg_name = 'io.murano.test.MyTest'
+#         cls.api_pkg_name = 'test.mpl.v1.app.Thing'
 
