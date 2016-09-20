@@ -1,3 +1,5 @@
+# Copyright 2016 AT&T Corp
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -342,4 +344,3 @@ class TestHotPackage(test_base.MuranoTestCase):
         self.assertRaises(
             exceptions.PackageClassLoadError,
             hot_package._translate_ui)
-

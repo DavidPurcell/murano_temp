@@ -22,11 +22,12 @@ import murano.packages.mpl_package as mpl_package
 import murano.packages.load_utils as load_utils
 import murano.tests.unit.base as test_base
 
+
 class TestMPLPackage(test_base.MuranoTestCase):
 
     def setUp(cls):
         super(TestMPLPackage, cls).setUp()
-        cls.source_directory , _ = os.path.split(os.path.abspath(__file__))
+        cls.source_directory = os.path.dirname(os.path.realpath(__file__))
         manifest_path = os.path.join(cls.source_directory, 'manifest.yaml')
         cls.manifest = {}
         with open(manifest_path) as manifest_file:
