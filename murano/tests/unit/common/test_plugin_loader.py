@@ -15,12 +15,14 @@ import mock
 import os.path
 import random
 import string
-from oslo_config import cfg
 
 from murano.common.plugins import extensions_loader
+
 from murano.tests.unit import base
 
 from murano.tests.unit.dsl.foundation import test_package_loader
+
+from oslo_config import cfg
 
 CONF = cfg.CONF
 
@@ -174,4 +176,4 @@ class PluginLoaderTest(base.MuranoTestCase):
         self.assertEqual(len(test_obj.packages), 2)
         test_obj.register_in_loader(self.package_loader)
         self.assertEqual(len(test_obj.packages),
-            len(self.package_loader.packages))
+                         len(self.package_loader.packages))

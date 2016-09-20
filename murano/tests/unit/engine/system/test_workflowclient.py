@@ -21,10 +21,7 @@ except ImportError as mistral_import_error:
 import mock
 from oslo_config import cfg
 
-from murano.dsl import dsl
-from murano.dsl import exceptions
 from murano.dsl import murano_method
-from murano.dsl import murano_object
 from murano.dsl import murano_type
 
 from murano.engine.system import workflowclient

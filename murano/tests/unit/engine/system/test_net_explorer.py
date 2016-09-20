@@ -14,16 +14,9 @@
 # limitations under the License.
 
 import mock
-import unittest
 
-from murano.dsl import dsl
-from murano.dsl import exceptions
-from murano.dsl import helpers
 from murano.dsl import murano_method
-from murano.dsl import murano_object
 from murano.dsl import murano_type
-
-import neutronclient.v2_0.client as nclient
 
 from oslo_config import cfg
 

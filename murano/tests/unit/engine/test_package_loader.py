@@ -10,9 +10,9 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-import collections
 import os
 import shutil
+import six
 import tempfile
 
 import mock
@@ -145,6 +145,7 @@ class TestPackageCache(base.MuranoTestCase):
         self.assertTrue(os.path.isfile(os.path.join(
             self.location, fqn, package.version, third_id, 'manifest.yaml')))
 
+
 class TestCombinedPackageLoader(base.MuranoTestCase):
     @classmethod
     def setUpClass(cls):
@@ -210,7 +211,7 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
         serialized_fixations = self.loader.export_fixation_table()
         self.assertEqual(1, self.api_loader.export_fixation_table.call_count)
 
-        for name, versions in serialized_fixations.iteritems():
+        for name, versions in six.iteritems(serialized_fixations):
             versions.sort()
         self.assertEqual(serialized_fixations, expected_fixations)
 
@@ -222,7 +223,7 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
         self.api_loader.import_fixation_table.assert_called_once_with(
             expected_fixations)
         for name, versions in self.loader.directory_loaders[0]._fixations.\
-            iteritems():
+                iteritems():
             for version in versions:
                 self.assertIn(str(version), expected_fixations[name])
                 expected_fixations[name].pop(
@@ -239,7 +240,7 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
         self.loader.compact_fixation_table()
         self.api_loader.compact_fixation_table.assert_called_once_with()
         for name, versions in self.loader.directory_loaders[0]._fixations.\
-            iteritems():
+                iteritems():
             for version in versions:
                 self.assertIn(str(version), expected_fixations[name])
                 expected_fixations[name].pop(
@@ -258,4 +259,3 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
 
 #         cls.local_pkg_name = 'io.murano.test.MyTest'
 #         cls.api_pkg_name = 'test.mpl.v1.app.Thing'
-

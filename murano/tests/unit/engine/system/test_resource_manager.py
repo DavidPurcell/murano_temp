@@ -12,18 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-import tempfile
 
 import mock
-from oslo_serialization import base64
+
 import yaml as yamllib
 
-from murano.dsl import helpers
-from murano.dsl import murano_object
-from murano.dsl import murano_type
-from murano.dsl import object_store
-from murano.engine.system import agent
 from murano.engine.system import resource_manager
 from murano.tests.unit import base
 

@@ -13,64 +13,72 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import os
+import six
 import yaml
 
 from murano.packages import exceptions
+
 import murano.packages.mpl_package as mpl_package
-import murano.packages.load_utils as load_utils
+
 import murano.tests.unit.base as test_base
+
 
 class TestMPLPackage(test_base.MuranoTestCase):
 
     def setUp(cls):
         super(TestMPLPackage, cls).setUp()
-        cls.source_directory , _ = os.path.split(os.path.abspath(__file__))
+        cls.source_directory, _ = os.path.split(os.path.abspath(__file__))
         manifest_path = os.path.join(cls.source_directory, 'manifest.yaml')
         cls.manifest = {}
         with open(manifest_path) as manifest_file:
-            for key, value in yaml.load(manifest_file).iteritems():
+            for key, value in six.iteritems(yaml.load(manifest_file)):
                 cls.manifest[key] = value
 
     def test_classes_property(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         classes = package.classes
         self.assertIn('Class1', classes)
         self.assertIn('Class2', classes)
 
     def test_ui_property(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         ui = package.ui
         self.assertIsNotNone(ui)
 
     def test_meta_property(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         meta = package.meta
         self.assertEqual(meta, 'test.meta')
 
     def test_get_class(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         stream, path = package.get_class('Class1')
         expected_path = os.path.join(self.source_directory, 'Classes',
-            'test.class1')
+                                     'test.class1')
         self.assertIn('test.class1', stream)
         self.assertEqual(path, expected_path)
 
     def test_get_class_with_inappropriate_name(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         self.assertRaises(exceptions.PackageClassLoadError,
-            package.get_class,
-            'Invalid name')
+                          package.get_class,
+                          'Invalid name')
 
     def test_get_class_with_nonexistent_class(self):
         package = mpl_package.MuranoPlPackage(None, None,
-            self.source_directory, self.manifest)
+                                              self.source_directory,
+                                              self.manifest)
         self.assertRaises(exceptions.PackageClassLoadError,
-            package.get_class,
-            'Class2')
+                          package.get_class,
+                          'Class2')
