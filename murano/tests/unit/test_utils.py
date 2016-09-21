@@ -13,15 +13,22 @@
 #    under the License.
 
 from murano import utils
+
 from murano.tests.unit import base
+
 from webob import exc
+
 from mock import MagicMock
+
 from murano.db import session
+
 
 class UtilsTests(base.MuranoTestCase):
     def test_check_session(self):
-	self.assertRaises(exc.HTTPNotFound,utils.check_session,None, None, None, None)
-	
-	s = session
-	s.environment_id = MagicMock(return_value = 1)
-	self.assertRaises(exc.HTTPBadRequest,utils.check_session,None, 2, s, None)
+        self.assertRaises(exc.HTTPNotFound, utils.check_session,
+                          None, None, None, None)
+
+        s = session
+        s.environment_id = MagicMock(return_value=1)
+        self.assertRaises(exc.HTTPBadRequest, utils.check_session,
+                          None, 2, s, None)

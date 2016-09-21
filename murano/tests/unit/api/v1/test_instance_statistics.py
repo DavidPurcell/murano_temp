@@ -14,23 +14,14 @@
 # limitations under the License.
 
 
-import mock
-from oslo_utils import timeutils
-
 from murano.api.v1 import environments
-from murano.api.v1 import sessions
 from murano.api.v1 import instance_statistics
+from murano.api.v1 import sessions
 
 from oslo_config import fixture as config_fixture
 from oslo_serialization import jsonutils
 
-from murano.db import session as db_session
-
-from murano.api import v1
-from murano.common import policy
-from murano.db import models
 import murano.tests.unit.api.base as tb
-import murano.tests.unit.utils as test_utils
 
 
 class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
@@ -64,14 +55,14 @@ class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
 
         result = self.statistics_controller.get_aggregated(request,
                                                            environment_id)
-        self.assertEquals([], result)
+        self.assertEqual([], result)
 
     def test_get_for_instance(self):
         CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
         self._set_policy_rules(
             {'create_environment': '@',
              'get_aggregated_statistics': '@',
-         'get_instance_statistics': '@'}
+             'get_instance_statistics': '@'}
         )
         self.expect_policy_check('create_environment')
 
@@ -85,10 +76,14 @@ class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
         environment_id = response_body['id']
         instance_id = 12
 
-        self.expect_policy_check('get_instance_statistics', {'environment_id': environment_id, 'instance_id': instance_id})
+        self.expect_policy_check('get_instance_statistics',
+                                 {'environment_id': environment_id,
+                                  'instance_id': instance_id})
 
-        result = self.statistics_controller.get_for_instance(request, environment_id, instance_id)
-        self.assertEquals([], result)
+        result = self.statistics_controller.get_for_instance(request,
+                                                             environment_id,
+                                                             instance_id)
+        self.assertEqual([], result)
 
     def test_get_for_environment(self):
         CREDENTIALS_1 = {'tenant': 'test_tenant_1', 'user': 'test_user_1'}
@@ -107,7 +102,9 @@ class TestInitApi(tb.ControllerTest, tb.MuranoApiTestCase):
         response_body = jsonutils.loads(request.get_response(self.api).body)
         environment_id = response_body['id']
 
-        self.expect_policy_check('get_statistics', {'environment_id': environment_id})
+        self.expect_policy_check('get_statistics',
+                                 {'environment_id': environment_id})
 
-        result = self.statistics_controller.get_for_environment(request, environment_id)
-        self.assertEquals([], result)
+        result = self.statistics_controller.get_for_environment(request,
+                                                                environment_id)
+        self.assertEqual([], result)

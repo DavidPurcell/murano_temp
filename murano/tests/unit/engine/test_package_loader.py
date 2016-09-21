@@ -247,15 +247,20 @@ class TestCombinedPackageLoader(base.MuranoTestCase):
                     expected_fixations[name].index(str(version)))
 
 
-# class TestApiPackageLoader(base.MuranoTestCase):
+class TestApiPackageLoader(base.MuranoTestCase):
 
-#     @classmethod
-#     def setUpClass(cls):
-#         super(TestCombinedPackageLoader, cls).setUpClass()
+    @classmethod
+    def setUpClass(cls):
+        super(TestApiPackageLoader, cls).setUpClass()
 
-#         cls.execution_session = mock.MagicMock()
-#         cls.loader = package_loader.ApiPackageLoader(
-#             cls.execution_session)
+        CONF.set_override('auth_uri', 'v3', group='keystone_authtoken')
 
-#         cls.local_pkg_name = 'io.murano.test.MyTest'
-#         cls.api_pkg_name = 'test.mpl.v1.app.Thing'
+        cls.execution_session = mock.MagicMock()
+        cls.loader = package_loader.ApiPackageLoader(cls.execution_session)
+
+        cls.local_pkg_name = 'io.murano.test.MyTest'
+        cls.api_pkg_name = 'test.mpl.v1.app.Thing'
+
+    def test_client(self):
+        murano_client = self.loader.client
+        self.assertIsNotNone(murano_client)

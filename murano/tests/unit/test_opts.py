@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import mock
-from oslo_config import cfg
 
 from murano import opts
 from murano.tests.unit import base
