@@ -149,4 +149,3 @@ class TestController(base.MuranoTestCase):
         resp = self.controller.bind(self.request, {}, '555-555', '666-666')
 
         self.assertEqual(nice_resp, resp)
-

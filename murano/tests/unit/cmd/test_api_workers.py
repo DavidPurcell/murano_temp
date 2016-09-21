@@ -73,8 +73,7 @@ class TestAPIWorkers(base.MuranoTestCase):
     @mock.patch.object(app_loader, 'load_paste_app')
     @mock.patch('oslo_service.service.launch')
     def test_workers_runtime_error(self, launch, setup, parse_args, init,
-                                  load_paste_app, set_middleware_defaults):
+                                   load_paste_app, set_middleware_defaults):
         self.override_config("api_workers", 0, "murano")
-	launch.side_effect = RuntimeError("test")
-        self.assertRaises(SystemExit,api.main)
-
+        launch.side_effect = RuntimeError("test")
+        self.assertRaises(SystemExit, api.main)

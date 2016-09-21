@@ -267,7 +267,7 @@ class TestHeatStack(base.MuranoTestCase):
             files={},
             environment='',
             tags=','.join(CONF.heat.stack_tags)
-       )
+            )
 
         self.assertEqual(hs.parameters(), hs._parameters)
 
@@ -301,7 +301,7 @@ class TestHeatStack(base.MuranoTestCase):
             files={},
             environment='',
             tags=','.join(CONF.heat.stack_tags)
-       )
+            )
 
         hs.reload()
         stack_info = self.heat_client_mock.stacks.get(stack_id=hs._name)

@@ -13,15 +13,11 @@
 #    under the License.
 
 import mock
-import unittest
 
-from murano.dsl import dsl
-from murano.dsl import helpers
-from murano.dsl import exceptions
 from murano.dsl import murano_method
-from murano.dsl import murano_object
 from murano.dsl import murano_type
 from murano.dsl import object_store
+
 from murano.engine.system import test_fixture
 from murano.tests.unit import base
 

@@ -1,3 +1,5 @@
+# Copyright 2016 AT&T Corp
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -11,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import os
 from shutil import rmtree
 import yaml
@@ -206,7 +207,7 @@ class TestHotPackage(test_base.MuranoTestCase):
             if i < len(manifest_file_contents):
                 with open(yaml_file, 'w') as yaml_file:
                     yaml.dump(manifest_file_contents[i], yaml_file,
-                        default_flow_style=True)
+                              default_flow_style=True)
 
     def tearDown(cls):
         super(TestHotPackage, cls).tearDown()
@@ -256,14 +257,15 @@ class TestHotPackage(test_base.MuranoTestCase):
         self.assertEqual(param1.expr, "$.bool().check($ in list(True, False))")
         param2 = params['Contract']['param2']
         self.assertEqual(param2.expr, "$.string().check($ in list('bar'))."
-            "check(len($) <= 50).check(len($) >= 0).check(matches($, '["
-            "A-Za-z0-9]'))")
+                         "check(len($) <= 50).check(len($) >= 0).check(matches"
+                         "($, '[A-Za-z0-9]'))")
         param3 = params['Contract']['param3']
         self.assertEqual(param3.expr, "$.int().check($ in list(0, 1, 2, 3, 4))"
-            ".check(len($) >= 0 and len($) <= 5).check($ >= 0 and $ <= 4)")
+                         ".check(len($) >= 0 and len($) <= 5).check($ >= 0 and"
+                         " $ <= 4)")
         param4 = params['Contract']['param4']
-        self.assertEqual(param4.expr,"$.int().check($ >= -1000).check($ <= "
-            "1000)")
+        self.assertEqual(param4.expr, "$.int().check($ >= -1000).check($ <= "
+                         "1000)")
         param5 = params['Contract']['param5']
         self.assertEqual(param5.expr, "$.string()")
         param6 = params['Contract']['param6']
@@ -277,7 +279,7 @@ class TestHotPackage(test_base.MuranoTestCase):
             'Default': {},
             'Usage': 'In'
         }
-        self.assertEquals(result['templateParameters'], expected_result)
+        self.assertEqual(result['templateParameters'], expected_result)
 
     def test_translate_param_to_contract_with_inappropriate_value(self):
         func = murano.packages.hot_package.HotPackage.\
@@ -342,4 +344,3 @@ class TestHotPackage(test_base.MuranoTestCase):
         self.assertRaises(
             exceptions.PackageClassLoadError,
             hot_package._translate_ui)
-

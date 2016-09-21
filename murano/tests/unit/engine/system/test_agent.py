@@ -362,7 +362,7 @@ class TestExecutionPlan(base.MuranoTestCase):
             self.assertEqual(encoded_text, body)
 
     def test_queue_name(self):
-       self.assertEqual(self.agent.queue_name(), self.agent._queue)
+        self.assertEqual(self.agent.queue_name(), self.agent._queue)
 
     def test_prepare_message(self):
         template = {'test'}
@@ -373,4 +373,5 @@ class TestExecutionPlan(base.MuranoTestCase):
         template = yamllib.load(
             self._read('application.template'),
             Loader=self.yaml_loader)
-        template = self.agent._build_v1_execution_plan(template, self.resources)
+        template = self.agent._build_v1_execution_plan(template,
+                                                       self.resources)

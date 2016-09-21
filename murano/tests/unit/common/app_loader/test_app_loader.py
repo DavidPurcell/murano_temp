@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
 import os
 from oslo_config import cfg
 
@@ -41,8 +40,8 @@ class AppLoaderTest(base.MuranoTestCase):
         self.assertIsNotNone(app)
         # Test whether the app's class corresponds to
         # murano.api.v1.router:API.factory
-        self.assertEquals(unicode(app.__class__),
-            "<class 'murano.api.v1.router.API'>")
+        self.assertEqual(unicode(app.__class__),
+                         "<class 'murano.api.v1.router.API'>")
 
     def test_load_paste_app_with_erroneous_flavor(self):
         self.override_config('config_file',
