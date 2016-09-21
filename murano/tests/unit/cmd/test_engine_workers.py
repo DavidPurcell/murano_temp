@@ -51,3 +51,12 @@ class TestEngineWorkers(base.MuranoTestCase):
         engine.main()
         launch.assert_called_once_with(mock.ANY, mock.ANY,
                                        workers=processutils.get_worker_count())
+
+    @mock.patch.object(config, 'parse_args')
+    @mock.patch.object(logging, 'setup')
+    @mock.patch('oslo_service.service.launch')
+    def test_workers_runtime_error(self, launch, setup, parse_args):
+        self.override_config("api_workers", 0, "murano")
+        launch.side_effect = RuntimeError("test")
+        self.assertRaises(SystemExit, engine.main)
+
