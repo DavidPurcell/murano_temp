@@ -16,6 +16,7 @@ from murano.dsl import dsl
 from murano.dsl import dsl_types
 from murano.tests.unit.dsl.foundation import test_case
 
+
 class TestAttributeStore(test_case.DslTestCase):
     def setUp(self):
         super(TestAttributeStore, self).setUp()
@@ -23,7 +24,7 @@ class TestAttributeStore(test_case.DslTestCase):
         self.fake_object = mock.MagicMock(object_id=mock.sentinel.oid)
         self.tagged_obj = dsl.MuranoObjectInterface(self.fake_object)
         self.owner_type = dsl_types.MuranoTypeReference(self.fake_object)
-        self.owner_type.type.name = mock.sentinel.typename 
+        self.owner_type.type.name = mock.sentinel.typename
         self.name = 'foobar'
 
     def test_get_attribute_key(self):
@@ -36,7 +37,7 @@ class TestAttributeStore(test_case.DslTestCase):
         self.assertEqual(expected_key, key)
 
     @mock.patch.object(attribute_store.AttributeStore, '_get_attribute_key',
-        return_value=(mock.sentinel.key1, mock.sentinel.key2))
+                       return_value=(mock.sentinel.key1, mock.sentinel.key2))
     def test_get(self, mock_get_attr_key):
         key1, key2 = mock.sentinel.key1, mock.sentinel.key2
         get_val = mock.sentinel.get_val
@@ -52,17 +53,15 @@ class TestAttributeStore(test_case.DslTestCase):
         self.assertEqual(get_val, val)
 
     @mock.patch.object(attribute_store.AttributeStore, '_get_attribute_key',
-        return_value=(mock.sentinel.key1, mock.sentinel.key2))
+                       return_value=(mock.sentinel.key1, mock.sentinel.key2))
     def test_set_object_if(self, mock_get_attr_key):
-        key1, key2 = mock.sentinel.key1, mock.sentinel.key2
-
         val = dsl.MuranoObjectInterface(self.fake_object)
         self.attribute_store._attributes = mock.MagicMock()
         self.attribute_store.set(
             self.tagged_obj, self.owner_type, self.name, val)
 
     @mock.patch.object(attribute_store.AttributeStore, '_get_attribute_key',
-        return_value=(mock.sentinel.key1, mock.sentinel.key2))
+                       return_value=(mock.sentinel.key1, mock.sentinel.key2))
     def test_set_object(self, mock_get_attr_key):
         key1, key2 = mock.sentinel.key1, mock.sentinel.key2
 
@@ -74,7 +73,7 @@ class TestAttributeStore(test_case.DslTestCase):
                          mock.sentinel.oid)
 
     @mock.patch.object(attribute_store.AttributeStore, '_get_attribute_key',
-        return_value=(mock.sentinel.key1, mock.sentinel.key2))
+                       return_value=(mock.sentinel.key1, mock.sentinel.key2))
     def test_set_none(self, mock_get_attr_key):
         key1, key2 = mock.sentinel.key1, mock.sentinel.key2
 
@@ -110,15 +109,14 @@ class TestAttributeStore(test_case.DslTestCase):
 
     def test_load(self):
         data = [
-           ['a', 'b', 'c', 'd'],
-           ['a', 'f', 'g', None],
-           ['b', 'i', 'j', 'k']
+            ['a', 'b', 'c', 'd'],
+            ['a', 'f', 'g', None],
+            ['b', 'i', 'j', 'k']
         ]
 
         self.attribute_store.load(data)
-        expected = {
-                'a': {('b', 'c'): 'd'},
-                'b': {('i', 'j'): 'k'}}
+        expected = {'a': {('b', 'c'): 'd'},
+                    'b': {('i', 'j'): 'k'}}
         self.assertEqual(expected, self.attribute_store._attributes)
 
     def test_forget_object_if(self):

@@ -140,3 +140,11 @@ class TestMuranoTypeParameter(test_case.DslTestCase):
         is_check = self.mtp.check(val, 'context', 123, foo='bar')
         mock_parent_check.assert_called_with(val, 'context', 123, foo='bar')
         self.assertFalse(is_check)
+
+    @mock.patch.object(yaqltypes.PythonType, 'check', return_value=True)
+    def tests_check_value_not_string_not_resolve_strings(
+        self, mock_parent_check):
+        self.mtp = dsl.MuranoTypeParameter(resolve_strings=False)
+        val = 12345
+        is_check = self.mtp.check(val, 'context')
+        self.assertFalse(is_check)

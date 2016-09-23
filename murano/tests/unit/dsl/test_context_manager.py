@@ -12,9 +12,10 @@
 
 import mock
 
-from murano.dsl import yaql_integration
 from murano.dsl import context_manager
+from murano.dsl import yaql_integration
 from murano.tests.unit.dsl.foundation import test_case
+
 
 class TestContextManager(test_case.DslTestCase):
     def setUp(self):
@@ -31,12 +32,12 @@ class TestContextManager(test_case.DslTestCase):
     def test_create_package_context(self):
         package = mock.MagicMock(context='mycontext')
         self.assertEqual('mycontext',
-            self.context_manager.create_package_context(package))
+                         self.context_manager.create_package_context(package))
 
     def test_create_type_context(self):
         murano_type = mock.MagicMock(context='mycontext')
         self.assertEqual('mycontext',
-            self.context_manager.create_type_context(murano_type))
+                         self.context_manager.create_type_context(murano_type))
 
     def test_create_object_context(self):
         obj = 'obj'
