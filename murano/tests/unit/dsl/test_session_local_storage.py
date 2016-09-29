@@ -27,7 +27,7 @@ class TestLocalbase(test_case.DslTestCase):
     def test_new(self):
         lb = self.FakeWithInit.__new__(
             self.FakeWithInit, 42, 'foo', bar='baz')
-        self.assertEqual(lb._local__args, ((42, 'foo',), {'bar': 'baz'}))
+        self.assertEqual(((42, 'foo',), {'bar': 'baz'}), lb._local__args)
 
     def test_new_bad(self):
         self.assertRaises(
@@ -43,19 +43,21 @@ class TestLocal(test_case.DslTestCase):
     def setUp(self, mock_patch):
         super(TestLocal, self).setUp()
         self.fl = self.FakeLocal('bar')
-        self.mock_patch = mock_patch
 
-    def _test_getattribute(self):
+    @mock.patch.object(session_local_storage, '_patch')
+    def test_getattribute(self, mock_patch):
         self.assertEqual('bar', self.fl.foo)
-        self.mock_patch.assert_called_with()
+        mock_patch.assert_called_with(self.fl)
 
-    def _test_setattribute(self):
+    @mock.patch.object(session_local_storage, '_patch')
+    def test_setattribute(self, mock_patch):
         self.fl.foo = 'baz'
-        self.mock_patch.assert_called_with()
+        mock_patch.assert_called_with(self.fl)
 
-    def _test_delattribute(self):
+    @mock.patch.object(session_local_storage, '_patch')
+    def test_delattribute(self, mock_patch):
         del self.fl.foo
-        self.mock_patch.assert_called_with()
+        mock_patch.assert_called_with(self.fl)
 
 
 class TestSessionLocalDict(test_case.DslTestCase):
@@ -65,11 +67,11 @@ class TestSessionLocalDict(test_case.DslTestCase):
 
     @mock.patch.object(helpers, 'get_execution_session', return_value=None)
     def test_data_no_session(self, mock_ges):
-        self.assertEqual(self.sld.data, {'foo': 'bar'})
+        self.assertEqual({'foo': 'bar'}, self.sld.data)
         self.sld.data = {'foo': 'baz'}
 
         mock_ges.assert_called_with()
-        self.assertEqual(self.sld.data, {'foo': 'baz'})
+        self.assertEqual({'foo': 'baz'}, self.sld.data)
 
     @mock.patch.object(helpers, 'get_execution_session',
                        return_value=mock.sentinel.session)
@@ -77,4 +79,4 @@ class TestSessionLocalDict(test_case.DslTestCase):
         self.sld.data = mock.sentinel.data
 
         mock_ges.assert_called_with()
-        self.assertEqual(self.sld.data, mock.sentinel.data)
+        self.assertEqual(mock.sentinel.data, self.sld.data)
